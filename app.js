@@ -1,6 +1,6 @@
 /**
- * DATA VIEW PRO - MASTER ENGINE v54.0
- * Unified for Excel "Live-Window" Editing, Fresh Export, and Fixed Sidebar Focus
+ * DATA VIEW PRO - MASTER ENGINE v55.0
+ * Final Unified Version: Row-Specific Edits & Direct JSON-to-Excel Export
  */
 
 let views = [];
@@ -219,28 +219,14 @@ function syncBoxAttr(idx, key, val, shouldRefreshSidebar) {
     if (shouldRefreshSidebar) refreshSidebar();
 }
 
-function setBoxMode(idx, mode) { currentView.boxes[idx].isVar = mode; triggerSave(); refreshSidebar(); drawBoxes(); }
-function handleVarSearch(val) { varSearchTerm = val; refreshSidebar(); }
-function updateViewName(val) { currentView.name = val; triggerSave(); }
-function updateCanvasBg(c) { currentView.canvasBg = c; document.getElementById('canvas-container').style.background = c; triggerSave(); }
-function deselectBox() { selectedBoxIdx = null; varSearchTerm = ""; refreshSidebar(); drawBoxes(); }
-function selectBox(idx) { selectedBoxIdx = idx; varSearchTerm = ""; refreshSidebar(); drawBoxes(); }
-function refreshSidebar() { const sb = document.getElementById('sidebar'); if(sb) sb.innerHTML = renderSidebarContent(); }
-function deleteBox(i) { currentView.boxes.splice(i,1); triggerSave(); deselectBox(); }
-function addNewBoxDirectly(w, h) {
-    const hasH = currentView.headers && currentView.headers.length > 0;
-    currentView.boxes.push({ x: 0, y: 0, w: parseInt(w), h: parseInt(h), title: 'Label', textVal: hasH ? currentView.headers[0] : 'Value', isVar: hasH, bgColor: '#e2e8f0', textColor: '#000', fontSize: 24 });
-    triggerSave(); drawBoxes();
-}
-
-// --- PRESENTATION ENGINE ---
+// --- PRESENTATION ENGINE: ROW-SPECIFIC EDITING ---
 function startPresentation() {
     document.getElementById('app').innerHTML = `
         <div class="presentation-fullscreen">
             <div class="slide-fit" id="slide-canvas" style="background:${currentView.canvasBg || '#ffffff'}"></div>
             <div class="presentation-nav">
                 <button onclick="window.close()">${iconHome}</button>
-                <span>${currentRowIndex+1} / ${currentView.data.length}</span>
+                <span id="slide-counter">${currentRowIndex+1} / ${currentView.data.length}</span>
                 <button onclick="prevSlide()">${iconLeft}</button>
                 <button onclick="nextSlide()">${iconRight}</button>
             </div>
@@ -280,29 +266,40 @@ function openLargePopup(idx, val) {
 
 function editLiveValue(idx) {
     const box = currentView.boxes[idx];
-    const oldVal = currentView.data[currentRowIndex][box.textVal] || '---';
-    const newVal = prompt(`Edit ${box.textVal}:`, oldVal);
+    const colKey = box.textVal;
+    // Targeting ONLY the current row index and specific column
+    const oldVal = currentView.data[currentRowIndex][colKey] || '---';
+    const newVal = prompt(`Edit ${colKey} (Row ${currentRowIndex + 1}):`, oldVal);
+    
     if (newVal !== null && newVal !== oldVal) {
         if (!currentView.history) currentView.history = [];
-        currentView.history.push({ time: new Date().toLocaleTimeString(), row: currentRowIndex+1, col: box.textVal, old: oldVal, new: newVal });
-        currentView.data[currentRowIndex][box.textVal] = newVal;
+        currentView.history.push({ time: new Date().toLocaleTimeString(), row: currentRowIndex + 1, col: colKey, old: oldVal, new: newVal });
+        currentView.data[currentRowIndex][colKey] = newVal;
         triggerSave(); closePop(); renderSlideContent();
     }
 }
 
-// --- EXCEL & EXPORT ---
+// --- FORCED FRESH EXPORT ---
 function exportFinalFiles() {
-    if (!currentView || !currentView.data.length) return alert("No data");
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(currentView.data);
-    XLSX.utils.book_append_sheet(wb, ws, "Data");
-    XLSX.writeFile(wb, `${currentView.name}_Updated.xlsx`);
-    const log = (currentView.history || []).map(h => `[${h.time}] Row ${h.row} | ${h.col}: ${h.old} -> ${h.new}`).join('\n');
-    const blob = new Blob([log], { type: 'text/plain' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${currentView.name}_history.txt`; 
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    if (!currentView || !currentView.data || currentView.data.length === 0) return alert("No data");
+    
+    try {
+        const wb = XLSX.utils.book_new();
+        // Generate new spreadsheet directly from the live 'data' JSON array
+        const ws = XLSX.utils.json_to_sheet(currentView.data);
+        XLSX.utils.book_append_sheet(wb, ws, "Data");
+        XLSX.writeFile(wb, `${currentView.name.replace(/\s+/g, '_')}_Updated.xlsx`);
+
+        const log = (currentView.history || []).map(h => `[${h.time}] Row ${h.row} | ${h.col}: ${h.old} -> ${h.new}`).join('\n');
+        if (log) {
+            const blob = new Blob([log], { type: 'text/plain' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${currentView.name}_history.txt`; 
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        }
+    } catch (e) { console.error(e); alert("Export failed."); }
 }
 
+// --- UTILS ---
 function uploadExcel() {
     const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.xlsx';
     inp.onchange = (e) => {
@@ -318,8 +315,23 @@ function uploadExcel() {
     inp.click();
 }
 
+function addNewBoxDirectly(w, h) {
+    const hasH = currentView.headers && currentView.headers.length > 0;
+    currentView.boxes.push({ x: 0, y: 0, w: parseInt(w), h: parseInt(h), title: 'Label', textVal: hasH ? currentView.headers[0] : 'Value', isVar: hasH, bgColor: '#e2e8f0', textColor: '#000', fontSize: 24 });
+    triggerSave(); drawBoxes();
+}
+
+function setBoxMode(idx, mode) { currentView.boxes[idx].isVar = mode; triggerSave(); refreshSidebar(); drawBoxes(); }
+function handleVarSearch(val) { varSearchTerm = val; refreshSidebar(); }
+function updateViewName(val) { currentView.name = val; triggerSave(); }
+function updateCanvasBg(c) { currentView.canvasBg = c; document.getElementById('canvas-container').style.background = c; triggerSave(); }
+function deselectBox() { selectedBoxIdx = null; varSearchTerm = ""; refreshSidebar(); drawBoxes(); }
+function selectBox(idx) { selectedBoxIdx = idx; varSearchTerm = ""; refreshSidebar(); drawBoxes(); }
+function refreshSidebar() { const sb = document.getElementById('sidebar'); if(sb) sb.innerHTML = renderSidebarContent(); }
 function closePop() { const p = document.querySelector('.popup-overlay'); if(p) p.remove(); }
-function nextSlide() { if(currentRowIndex < currentView.data.length - 1) { currentRowIndex++; renderSlideContent(); } }
-function prevSlide() { if(currentRowIndex > 0) { currentRowIndex--; renderSlideContent(); } }
+function nextSlide() { if(currentRowIndex < currentView.data.length - 1) { currentRowIndex++; renderSlideContent(); updateCounter(); } }
+function prevSlide() { if(currentRowIndex > 0) { currentRowIndex--; renderSlideContent(); updateCounter(); } }
+function updateCounter() { const c = document.getElementById('slide-counter'); if(c) c.innerText = `${currentRowIndex+1} / ${currentView.data.length}`; }
+function deleteView(id) { if(confirm("Delete View?")) { views = views.filter(v => v.createdAt != id); triggerSave(); renderHome(); } }
+function deleteBox(i) { currentView.boxes.splice(i,1); triggerSave(); deselectBox(); }
 function createNewView() { const name = prompt("Name:"); if(name) { currentView = { name, createdAt: Date.now(), boxes: [], data: [], headers: [], history: [] }; views.push(currentView); triggerSave(); renderEditCanvas(); } }
-function deleteView(id) { if(confirm("Delete?")) { views = views.filter(v => v.createdAt != id); triggerSave(); renderHome(); } }
