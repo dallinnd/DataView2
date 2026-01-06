@@ -188,23 +188,29 @@ function openLargePopup(idx, val) {
 
 function editLiveValue(idx) {
     const box = currentView.boxes[idx];
+    // This targets the specific 'cell' by using the current row and the column header (textVal)
     const oldVal = currentView.data[currentRowIndex][box.textVal] || '---';
-    const newVal = prompt(`Edit ${box.textVal} (Row ${currentRowIndex + 1}):`, oldVal);
+    
+    const newVal = prompt(`Edit value for ${box.title} (${box.textVal}):`, oldVal);
     
     if (newVal !== null && newVal !== oldVal) {
+        // 1. Update the in-memory data
+        currentView.data[currentRowIndex][box.textVal] = newVal;
+        
+        // 2. Log the change for the history export
         if (!currentView.history) currentView.history = [];
-        currentView.history.push({ 
-            time: new Date().toLocaleTimeString(), 
-            row: currentRowIndex + 1, 
-            col: box.textVal, 
-            old: oldVal, 
-            new: newVal 
+        currentView.history.push({
+            time: new Date().toLocaleTimeString(),
+            row: currentRowIndex + 1,
+            col: box.textVal,
+            old: oldVal,
+            new: newVal
         });
 
-        currentView.data[currentRowIndex][box.textVal] = newVal;
+        // 3. Persist to LocalStorage and Refresh
         triggerSave(); 
         closePop(); 
-        renderSlideContent();
+        renderSlideContent(); 
     }
 }
 
