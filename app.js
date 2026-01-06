@@ -175,8 +175,8 @@ function openLargePopup(idx, val) {
     const overlay = document.createElement('div'); 
     overlay.className = 'popup-overlay'; 
     overlay.innerHTML = `
-        <div class="detail-modal">
-            <div style="font-size:1.4rem; color:var(--slate); margin-bottom:10px; text-transform:uppercase;">${box.title}</div>
+        <div class="detail-modal" style="background: ${box.bgColor};">
+            <div style="font-size:1.4rem; color:${box.textColor}; margin-bottom:10px; text-transform:uppercase; opacity:0.7;">${box.title}</div>
             <div class="detail-value" style="color:${box.textColor}">${val}</div>
             <div style="display:flex; gap:20px;">
                 ${box.isVar ? `<button class="orange-btn" onclick="editLiveValue(${idx})">Edit Value</button>` : ''}
@@ -189,10 +189,9 @@ function openLargePopup(idx, val) {
 function editLiveValue(idx) {
     const box = currentView.boxes[idx];
     const oldVal = currentView.data[currentRowIndex][box.textVal] || '---';
-    const newVal = prompt(`Edit value for ${box.textVal} (Row ${currentRowIndex + 1}):`, oldVal);
+    const newVal = prompt(`Edit ${box.textVal} (Row ${currentRowIndex + 1}):`, oldVal);
     
     if (newVal !== null && newVal !== oldVal) {
-        // Log history
         if (!currentView.history) currentView.history = [];
         currentView.history.push({ 
             time: new Date().toLocaleTimeString(), 
@@ -202,7 +201,6 @@ function editLiveValue(idx) {
             new: newVal 
         });
 
-        // Update current data cell
         currentView.data[currentRowIndex][box.textVal] = newVal;
         triggerSave(); 
         closePop(); 
@@ -213,14 +211,11 @@ function editLiveValue(idx) {
 // --- EXPORT & HELPERS ---
 function exportFinalFiles() {
     if (!currentView || !currentView.data.length) return alert("No data to export");
-    
-    // 1. Create updated Excel file
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(currentView.data);
     XLSX.utils.book_append_sheet(wb, ws, "Data");
     XLSX.writeFile(wb, `${currentView.name}_Updated.xlsx`);
 
-    // 2. Export Audit History
     if (currentView.history && currentView.history.length > 0) {
         const log = currentView.history.map(h => `[${h.time}] Row ${h.row} | ${h.col}: ${h.old} -> ${h.new}`).join('\n');
         const blob = new Blob([log], { type: 'text/plain' });
