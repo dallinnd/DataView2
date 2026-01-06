@@ -216,19 +216,46 @@ function editLiveValue(idx) {
 
 // --- EXPORT & HELPERS ---
 function exportFinalFiles() {
-    if (!currentView || !currentView.data.length) return alert("No data to export");
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(currentView.data);
-    XLSX.utils.book_append_sheet(wb, ws, "Data");
-    XLSX.writeFile(wb, `${currentView.name}_Updated.xlsx`);
+    // 1. Validation: Ensure we have data to turn into a file
+    if (!currentView || !currentView.data || currentView.data.length === 0) {
+        return alert("No data found in this view to export.");
+    }
 
-    if (currentView.history && currentView.history.length > 0) {
-        const log = currentView.history.map(h => `[${h.time}] Row ${h.row} | ${h.col}: ${h.old} -> ${h.new}`).join('\n');
-        const blob = new Blob([log], { type: 'text/plain' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `${currentView.name}_history.txt`;
-        a.click();
+    try {
+        // 2. Create a brand new Workbook object
+        const wb = XLSX.utils.book_new();
+
+        // 3. Force the JSON array into a new Worksheet
+        // This takes the current 'live' objects from your localStorage and maps them to cells
+        const ws = XLSX.utils.json_to_sheet(currentView.data);
+
+        // 4. Attach the worksheet to the workbook
+        XLSX.utils.book_append_sheet(wb, ws, "Updated_Data");
+
+        // 5. Generate and Download the file
+        // We clean the filename to avoid issues with special characters
+        const safeName = currentView.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        XLSX.writeFile(wb, `${safeName}_Final_Export.xlsx`);
+
+        // 6. Handle the History Text File download
+        const historyArr = currentView.history || [];
+        if (historyArr.length > 0) {
+            const logContent = historyArr.map(h => 
+                `[${h.time}] Row ${h.row} | ${h.col}: ${h.old} -> ${h.new}`
+            ).join('\n');
+            
+            const blob = new Blob([logContent], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `${safeName}_change_log.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+    } catch (error) {
+        console.error("Export Error:", error);
+        alert("Failed to create Excel file. Ensure you have the XLSX library loaded.");
     }
 }
 
