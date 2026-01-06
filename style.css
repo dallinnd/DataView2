@@ -8,14 +8,13 @@
   --slate: #64748b;
   --bg-soft: #f8fafc;
   --light-grey: #e2e8f0;
-  --glass: rgba(255, 255, 255, 0.75);
 }
 
 body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: var(--bg-soft); color: var(--dark); overflow: hidden; }
 #app { height: 100vh; display: flex; flex-direction: column; }
 .main-content { display: flex; flex: 1; overflow: hidden; }
 
-/* --- CENTERED MENUS (50% WIDTH) --- */
+/* --- CENTERED MENUS --- */
 .home-container { width: 50%; margin: 0 auto; padding: 60px 0; display: flex; flex-direction: column; box-sizing: border-box; }
 @media (max-width: 1024px) { .home-container { width: 85%; } }
 
@@ -25,7 +24,7 @@ body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: var(-
     box-shadow: 0 10px 20px rgba(0,0,0,0.03); border: 1px solid #f1f5f9;
 }
 
-/* --- SIDEBAR & ROUNDED INPUTS --- */
+/* --- SIDEBAR & INPUTS --- */
 .editor-sidebar {
   width: 400px; background: white; border-right: 1px solid #e2e8f0;
   display: flex; flex-direction: column; padding: 25px; 
@@ -33,7 +32,7 @@ body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: var(-
 }
 
 input[type="text"], select {
-    width: 100%; padding: 14px 18px; border-radius: 20px; /* High rounding */
+    width: 100%; padding: 14px 18px; border-radius: 20px;
     border: 1px solid #e2e8f0; font-size: 0.95rem; background: #f8fafc;
     outline: none; transition: 0.2s; box-sizing: border-box;
 }
@@ -88,9 +87,15 @@ button { cursor: pointer; border: none; font-weight: 700; border-radius: 20px; t
 .presentation-nav svg { width: 18px; height: 18px; fill: white; }
 .presentation-nav span { color: white; font-size: 0.75rem; font-weight: 700; }
 
+/* --- MODALS --- */
 .popup-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); display: flex; align-items: center; justify-content: center; z-index: 10001; backdrop-filter: blur(12px); }
-.detail-modal { background: white; width: 95%; height: 92%; border-radius: 35px; padding: 40px; display: flex; flex-direction: column; justify-content: center; align-items: center; box-sizing: border-box; }
-.detail-value { font-size: 6rem; font-weight: 900; margin-bottom: 40px; line-height: 1; word-break: break-all; }
+.detail-modal { 
+    width: 95%; height: 92%; border-radius: 35px; padding: 40px; 
+    display: flex; flex-direction: column; justify-content: center; 
+    align-items: center; box-sizing: border-box; 
+    transition: background 0.3s ease;
+}
+.detail-value { font-size: 6rem; font-weight: 900; margin-bottom: 40px; line-height: 1; word-break: break-all; text-align: center; }
 
 /* Grid Helpers */
 .color-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
