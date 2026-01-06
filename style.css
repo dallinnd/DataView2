@@ -1,4 +1,4 @@
-/* --- DATA VIEW PRO STYLES --- */
+/* --- DATA VIEW PRO MASTER STYLES --- */
 :root {
   --primary-grad: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   --success-grad: linear-gradient(135deg, #00b09b 0%, #96c93d 100%);
@@ -13,40 +13,38 @@ body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg-soft); 
 #app { height: 100vh; display: flex; flex-direction: column; }
 .main-content { display: flex; flex: 1; overflow: hidden; }
 
-/* Menus */
-.home-container { width: 50%; margin: 0 auto; padding: 60px 0; box-sizing: border-box; }
+/* Home Menu */
+.home-container { width: 50%; margin: 0 auto; padding: 60px 0; box-sizing: border-box; display: flex; flex-direction: column; }
+@media (max-width: 1024px) { .home-container { width: 85%; } }
+
+.main-heading { 
+  font-size: 2.5rem; font-weight: 900; margin-bottom: 40px; text-align: center; 
+  background: var(--primary-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; 
+}
+
 .view-card { background: white; padding: 25px; border-radius: 20px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
 
-/* Sidebar */
+/* Sidebar Editor */
 .editor-sidebar { width: 380px; background: white; border-right: 1px solid #e2e8f0; padding: 25px; overflow-y: auto; box-sizing: border-box; }
-.sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
 input[type="text"], select { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; margin-bottom: 15px; box-sizing: border-box; outline: none; }
 
-/* Canvas */
-.canvas-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; }
-.canvas-16-9 { position: relative; width: 100%; max-width: 1000px; aspect-ratio: 16/9; background: white; box-shadow: 0 20px 50px rgba(0,0,0,0.1); border-radius: 30px; overflow: hidden; }
+/* Responsive Canvas */
+
+.canvas-area { flex: 1; padding: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.canvas-16-9 { position: relative; width: 100%; max-width: 1100px; aspect-ratio: 16/9; background: white; box-shadow: 0 20px 50px rgba(0,0,0,0.1); border-radius: 30px; overflow: hidden; }
 
 .box-instance { position: absolute; border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 15px; border: 1px solid rgba(255,255,255,0.4); margin: 5px; }
-.selected-box { outline: 4px solid #667eea; outline-offset: 4px; }
+.selected-box { outline: 4px solid #667eea; outline-offset: 4px; z-index: 10; }
+.box-title { font-size: 0.8rem; font-weight: 700; opacity: 0.5; text-transform: uppercase; margin-bottom: 5px; }
 
-/* Presentation */
-.presentation-fullscreen { position: fixed; inset: 0; background: #000; display: flex; align-items: center; justify-content: center; z-index: 9999; }
-.slide-fit { width: 100vw; height: 56.25vw; max-height: 100vh; max-width: 177.78vh; position: relative; overflow: hidden; }
-
+/* Presentation Modal */
 .popup-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); display: flex; align-items: center; justify-content: center; z-index: 10001; backdrop-filter: blur(15px); }
 .detail-modal { width: 95%; height: 92%; border-radius: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px; box-sizing: border-box; transition: 0.3s; }
-.detail-value { font-size: 7rem; font-weight: 900; margin-bottom: 40px; text-align: center; line-height: 1; word-break: break-all; }
+.detail-value { font-size: 8rem; font-weight: 900; margin-bottom: 40px; text-align: center; line-height: 1; word-break: break-all; }
 
-/* Buttons */
+/* Global Buttons */
 button { border: none; border-radius: 15px; cursor: pointer; color: white; font-weight: 700; padding: 12px 24px; transition: 0.2s; }
+.primary-btn { background: var(--success-grad); padding: 22px; width: 100%; font-size: 1.2rem; }
 .blue-btn { background: var(--primary-grad); }
 .orange-btn { background: var(--orange-grad); }
 .danger-btn { background: var(--danger-grad); }
-.primary-btn { background: var(--success-grad); padding: 22px; width: 100%; font-size: 1.2rem; }
-
-/* Utils */
-.color-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
-.circle { width: 30px; height: 30px; border-radius: 50%; border: 2px solid white; cursor: pointer; }
-.pills-container { display: flex; flex-wrap: wrap; gap: 8px; max-height: 200px; overflow-y: auto; }
-.var-pill { padding: 8px 15px; background: #f1f5f9; border-radius: 20px; font-size: 0.8rem; cursor: pointer; }
-.var-pill.selected { background: var(--orange-grad); color: white; }
