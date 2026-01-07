@@ -206,19 +206,38 @@ function renderSidebarContent() {
 
 function renderGlobalControls() {
     const btnText = (currentView.data && currentView.data.length > 0) ? 'Change Excel Data' : 'Upload Excel Sheet';
+    
+    // Updated button grid with new sizes
     return `
-        <div class="property-group"><h4>View Name</h4><input type="text" value="${currentView.name}" oninput="currentView.name=this.value; triggerSave();"></div>
         <div class="property-group">
-            <h4>Layout Tools</h4>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                <button class="size-btn" onclick="addNewBoxDirectly(1,1)">+ 1x1 Box</button>
-                <button class="size-btn" onclick="addNewBoxDirectly(2,1)">+ 2x1 Box</button>
-                <button class="size-btn" onclick="addNewBoxDirectly(3,1)">+ 3x1 Box</button>
-                <button class="size-btn" onclick="addNewBoxDirectly(2,2)">+ 2x2 Box</button>
+            <h4>View Name</h4>
+            <input type="text" value="${currentView.name}" oninput="currentView.name=this.value; triggerSave();">
+        </div>
+
+        <div class="property-group">
+            <h4>Add Layout Box</h4>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <button class="size-btn" onclick="addNewBoxDirectly(1,1)">+ 1x1 Small</button>
+                <button class="size-btn" onclick="addNewBoxDirectly(2,1)">+ 2x1 Wide</button>
+                <button class="size-btn" onclick="addNewBoxDirectly(3,1)">+ 3x1 Wide</button>
+                <button class="size-btn" onclick="addNewBoxDirectly(4,1)">+ 4x1 Wide</button>
+                <button class="size-btn" style="grid-column: span 2;" onclick="addNewBoxDirectly(6,1)">+ 6x1 Full Width</button>
+                
+                <button class="size-btn" onclick="addNewBoxDirectly(2,2)">+ 2x2 Square</button>
+                <button class="size-btn" onclick="addNewBoxDirectly(3,2)">+ 3x2 Block</button>
+                <button class="size-btn" onclick="addNewBoxDirectly(4,2)">+ 4x2 Block</button>
+                <button class="size-btn" onclick="addNewBoxDirectly(3,3)">+ 3x3 Large</button>
+                <button class="size-btn" style="grid-column: span 2;" onclick="addNewBoxDirectly(4,4)">+ 4x4 Full Height</button>
             </div>
         </div>
-        <div class="property-group"><h4>Canvas Theme</h4><div class="color-grid">${bgPresets.map(c => `<div class="circle" style="background:${c}" onclick="updateCanvasBg('${c}')"></div>`).join('')}</div></div>
-        <button class="orange-btn" style="width:100%;" onclick="uploadExcel()">${btnText}</button>`;
+
+        <div class="property-group">
+            <h4>Canvas Theme</h4>
+            <div class="color-grid">${bgPresets.map(c => `<div class="circle" style="background:${c}" onclick="updateCanvasBg('${c}')"></div>`).join('')}</div>
+        </div>
+        
+        <button class="orange-btn" style="width:100%;" onclick="uploadExcel()">${btnText}</button>
+    `;
 }
 
 function renderBoxControls() {
