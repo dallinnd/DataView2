@@ -1,6 +1,6 @@
 /**
- * DATA VIEW PRO - MASTER ENGINE v62.0
- * FULL REPAIR: Fixes Edit UI, History Rendering, and Updated Excel Export
+ * DATA VIEW PRO - MASTER ENGINE v63.0
+ * CRITICAL UPDATE: Hard Commit System for Data Persistence
  */
 
 let views = [];
@@ -8,7 +8,6 @@ let currentView = null;
 let currentRowIndex = 0;
 let selectedBoxIdx = null;
 let varSearchTerm = ""; 
-
 let draggingElement = null;
 let dragIdx = -1;
 let offset = { x: 0, y: 0 };
@@ -20,9 +19,9 @@ const iconHome = `<svg viewBox="0 0 24 24" width="20" height="20"><path fill="wh
 const iconLeft = `<svg viewBox="0 0 24 24" width="20" height="20"><path fill="white" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>`;
 const iconRight = `<svg viewBox="0 0 24 24" width="20" height="20"><path fill="white" d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>`;
 
-// --- INIT & PERSISTENCE ---
+// --- 1. INITIALIZATION & DATA LOADING ---
 document.addEventListener('DOMContentLoaded', () => {
-    loadGlobalData();
+    refreshGlobalData(); // Load data immediately on start
     const params = new URLSearchParams(window.location.search);
     const viewId = params.get('view');
     if (viewId) {
@@ -31,25 +30,35 @@ document.addEventListener('DOMContentLoaded', () => {
     } else { renderHome(); }
 });
 
-function loadGlobalData() {
+// Force reload from LocalStorage to ensure we have the latest edits
+function refreshGlobalData() {
     const saved = localStorage.getItem('dataView_master_v52');
     views = saved ? JSON.parse(saved) : [];
 }
 
+// THE HARD COMMIT: Updates the specific view in the master array and saves to disk
 function triggerSave() {
     if (currentView) {
+        // Find index of current view in the master list
         const idx = views.findIndex(v => v.createdAt === currentView.createdAt);
-        if (idx !== -1) views[idx] = currentView;
+        if (idx !== -1) {
+            views[idx] = currentView; // Update the master record
+        } else {
+            views.push(currentView); // Or add if new
+        }
     }
+    // Commit to storage
     localStorage.setItem('dataView_master_v52', JSON.stringify(views));
+    
+    // UI Feedback
     const badge = document.getElementById('save-badge');
     if (badge) { badge.style.opacity = "1"; setTimeout(() => badge.style.opacity = "0", 800); }
 }
 
-// --- VIEW NAVIGATION ---
+// --- 2. NAVIGATION ---
 function renderHome() {
     currentView = null;
-    loadGlobalData();
+    refreshGlobalData(); // Always get fresh data
     document.getElementById('app').innerHTML = `
         <div class="home-container">
             <h1 class="main-heading">Data View Pro</h1>
@@ -64,7 +73,10 @@ function renderHome() {
 }
 
 function openMenu(id) {
+    refreshGlobalData(); // Sync before opening
     currentView = views.find(v => v.createdAt == id);
+    if(!currentView) return renderHome();
+
     document.getElementById('app').innerHTML = `
         <div class="home-container">
             <button class="blue-btn" style="background:var(--slate); margin-bottom:20px; align-self:flex-start;" onclick="renderHome()">← Back</button>
@@ -79,7 +91,93 @@ function openMenu(id) {
         </div>`;
 }
 
-// --- EDITOR SCREEN ---
+// --- 3. THE CRITICAL LIVE EDIT FUNCTION ---
+function editLiveValue(idx) {
+    const box = currentView.boxes[idx];
+    const colKey = box.textVal;
+    
+    // Get current value safely
+    const oldVal = currentView.data[currentRowIndex][colKey] || '---';
+    const newVal = prompt(`Edit Row ${currentRowIndex + 1} - ${colKey}:`, oldVal);
+    
+    // Logic: Only save if value changed and is not null (Cancel)
+    if (newVal !== null && newVal !== String(oldVal)) {
+        
+        // 1. Ensure history array exists
+        if (!currentView.history) currentView.history = [];
+        
+        // 2. Add to History (UNSHIFT puts it at the TOP)
+        currentView.history.unshift({
+            timestamp: new Date().toLocaleTimeString(),
+            rowNumber: currentRowIndex + 1,
+            column: colKey,
+            oldValue: String(oldVal),
+            newValue: String(newVal)
+        });
+
+        // 3. Update the Actual Data Row
+        currentView.data[currentRowIndex][colKey] = newVal;
+        
+        // 4. HARD SAVE: Write to LocalStorage immediately
+        triggerSave(); 
+        
+        // 5. Refresh the Presentation UI
+        closePop(); 
+        renderSlideContent();
+    }
+}
+
+// --- 4. HISTORY VIEW (Syncs on Load) ---
+function renderHistoryView() {
+    refreshGlobalData(); // Grab latest data from storage
+    currentView = views.find(v => v.createdAt == currentView.createdAt);
+
+    const history = currentView.history || [];
+    const rows = history.length > 0 ? history.map(h => `
+        <tr>
+            <td>${h.timestamp}</td>
+            <td><strong>Row ${h.rowNumber}</strong></td>
+            <td>${h.column}</td>
+            <td style="color:var(--danger-grad); text-decoration:line-through;">${h.oldValue}</td>
+            <td style="color:#10b981; font-weight:800;">${h.newValue}</td>
+        </tr>`).join('') : '<tr><td colspan="5" style="text-align:center; padding:50px; color:var(--slate);">No edits recorded yet.</td></tr>';
+
+    document.getElementById('app').innerHTML = `
+        <div class="home-container" style="width:95%; max-width:1100px;">
+            <button class="blue-btn" style="background:var(--slate); margin-bottom:20px;" onclick="openMenu('${currentView.createdAt}')">← Back</button>
+            <h1 class="main-heading" style="text-align:left;">History Audit</h1>
+            <div style="background:white; border-radius:24px; padding:10px; box-shadow:0 10px 30px rgba(0,0,0,0.05);">
+                <table class="history-table">
+                    <thead><tr><th>Time</th><th>Row</th><th>Field</th><th>Original</th><th>Updated</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>
+            <button class="danger-btn" style="margin-top:20px;" onclick="if(confirm('Clear Log?')){currentView.history=[]; triggerSave(); renderHistoryView();}">Clear Log</button>
+        </div>`;
+}
+
+// --- 5. EXPORT PACK (Uses Synced Data) ---
+function exportFinalFiles() {
+    refreshGlobalData(); // Ensure we export what is on disk
+    currentView = views.find(v => v.createdAt == currentView.createdAt);
+
+    if (!currentView.data || !currentView.data.length) return alert("No data to export.");
+    
+    // Generate Excel from the MODIFIED data
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(currentView.data);
+    XLSX.utils.book_append_sheet(wb, ws, "Master_Data");
+    XLSX.writeFile(wb, `${currentView.name}_Updated.xlsx`);
+
+    // Generate History Log
+    const log = (currentView.history || []).map(h => `[${h.timestamp}] Row ${h.rowNumber} | ${h.column}: ${h.oldValue} -> ${h.newValue}`).join('\n');
+    if (log) {
+        const blob = new Blob([`HISTORY LOG FOR: ${currentView.name}\n\n` + log], { type: 'text/plain' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${currentView.name}_Log.txt`; a.click();
+    }
+}
+
+// --- 6. EDITOR & CANVAS ---
 function renderEditCanvas() {
     selectedBoxIdx = null;
     document.getElementById('app').innerHTML = `
@@ -109,10 +207,7 @@ function renderSidebarContent() {
 function renderGlobalControls() {
     const btnText = (currentView.data && currentView.data.length > 0) ? 'Change Excel Data' : 'Upload Excel Sheet';
     return `
-        <div class="property-group">
-            <h4>View Name</h4>
-            <input type="text" value="${currentView.name}" oninput="currentView.name=this.value; triggerSave();">
-        </div>
+        <div class="property-group"><h4>View Name</h4><input type="text" value="${currentView.name}" oninput="currentView.name=this.value; triggerSave();"></div>
         <div class="property-group">
             <h4>Layout Tools</h4>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
@@ -122,10 +217,7 @@ function renderGlobalControls() {
                 <button class="size-btn" onclick="addNewBoxDirectly(2,2)">+ 2x2 Box</button>
             </div>
         </div>
-        <div class="property-group">
-            <h4>Canvas Theme</h4>
-            <div class="color-grid">${bgPresets.map(c => `<div class="circle" style="background:${c}" onclick="updateCanvasBg('${c}')"></div>`).join('')}</div>
-        </div>
+        <div class="property-group"><h4>Canvas Theme</h4><div class="color-grid">${bgPresets.map(c => `<div class="circle" style="background:${c}" onclick="updateCanvasBg('${c}')"></div>`).join('')}</div></div>
         <button class="orange-btn" style="width:100%;" onclick="uploadExcel()">${btnText}</button>`;
 }
 
@@ -156,7 +248,7 @@ function renderBoxControls() {
         <button class="danger-btn" style="width:100%;" onclick="deleteBox(${selectedBoxIdx})">Delete Box</button>`;
 }
 
-// --- PRESENTATION & LIVE EDIT ---
+// --- 7. PRESENTATION ENGINE ---
 function startPresentation() {
     document.getElementById('app').innerHTML = `
         <div class="presentation-fullscreen">
@@ -169,11 +261,7 @@ function startPresentation() {
             </div>
         </div>`;
     renderSlideContent();
-    window.onkeydown = (e) => { 
-        if (e.key === 'ArrowRight' || e.key === ' ') nextSlide(); 
-        if (e.key === 'ArrowLeft') prevSlide(); 
-        if (e.key === 'Escape') closePop();
-    };
+    window.onkeydown = (e) => { if (e.key === 'ArrowRight' || e.key === ' ') nextSlide(); if (e.key === 'ArrowLeft') prevSlide(); if (e.key === 'Escape') closePop(); };
 }
 
 function renderSlideContent() {
@@ -205,66 +293,7 @@ function openLargePopup(idx, val) {
     document.body.appendChild(overlay); 
 }
 
-function editLiveValue(idx) {
-    const box = currentView.boxes[idx];
-    const colKey = box.textVal;
-    const oldVal = currentView.data[currentRowIndex][colKey] || '---';
-    const newVal = prompt(`Edit Row ${currentRowIndex + 1} - ${colKey}:`, oldVal);
-    
-    if (newVal !== null && newVal !== oldVal) {
-        if (!currentView.history) currentView.history = [];
-        currentView.history.unshift({
-            timestamp: new Date().toLocaleTimeString(),
-            rowNumber: currentRowIndex + 1,
-            column: colKey,
-            oldValue: String(oldVal),
-            newValue: String(newVal)
-        });
-        currentView.data[currentRowIndex][colKey] = newVal;
-        triggerSave(); closePop(); renderSlideContent();
-    }
-}
-
-// --- HISTORY LOG SCREEN ---
-function renderHistoryView() {
-    const history = currentView.history || [];
-    const rows = history.length > 0 ? history.map(h => `
-        <tr>
-            <td>${h.timestamp}</td>
-            <td><strong>Row ${h.rowNumber}</strong></td>
-            <td>${h.column}</td>
-            <td style="color:var(--danger-grad); text-decoration:line-through;">${h.oldValue}</td>
-            <td style="color:#10b981; font-weight:800;">${h.newValue}</td>
-        </tr>`).join('') : '<tr><td colspan="5" style="text-align:center; padding:50px;">No edits found.</td></tr>';
-
-    document.getElementById('app').innerHTML = `
-        <div class="home-container" style="width:95%; max-width:1100px;">
-            <button class="blue-btn" style="background:var(--slate); margin-bottom:20px;" onclick="openMenu('${currentView.createdAt}')">← Back</button>
-            <h1 class="main-heading" style="text-align:left;">History Audit</h1>
-            <table class="history-table">
-                <thead><tr><th>Time</th><th>Row</th><th>Field</th><th>Original</th><th>Updated</th></tr></thead>
-                <tbody>${rows}</tbody>
-            </table>
-            <button class="danger-btn" style="margin-top:20px;" onclick="if(confirm('Clear Log?')){currentView.history=[]; triggerSave(); renderHistoryView();}">Clear Log</button>
-        </div>`;
-}
-
-// --- EXPORT PACK ---
-function exportFinalFiles() {
-    if (!currentView.data || !currentView.data.length) return alert("No data to export.");
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(currentView.data);
-    XLSX.utils.book_append_sheet(wb, ws, "Master_Data");
-    XLSX.writeFile(wb, `${currentView.name}_Updated.xlsx`);
-
-    const log = (currentView.history || []).map(h => `[${h.timestamp}] Row ${h.rowNumber} | ${h.column}: ${h.oldValue} -> ${h.newValue}`).join('\n');
-    if (log) {
-        const blob = new Blob([log], { type: 'text/plain' });
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${currentView.name}_Log.txt`; a.click();
-    }
-}
-
-// --- CANVAS & UTILS ---
+// --- UTILS ---
 function drawBoxes() {
     const layer = document.getElementById('boxes-layer'); if(!layer) return; layer.innerHTML = '';
     currentView.boxes.forEach((box, i) => {
@@ -280,7 +309,6 @@ function drawBoxes() {
 function startDragExisting(e, idx) {
     e.preventDefault(); dragIdx = idx;
     const original = e.currentTarget; const rect = original.getBoundingClientRect();
-    const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
     draggingElement = original.cloneNode(true); draggingElement.classList.add('dragging');
     offset.x = e.clientX - rect.left; offset.y = e.clientY - rect.top;
     document.getElementById('canvas-container').appendChild(draggingElement);
@@ -292,7 +320,6 @@ window.addEventListener('mousemove', (e) => {
     draggingElement.style.left = `${e.clientX - rect.left - offset.x}px`; 
     draggingElement.style.top = `${e.clientY - rect.top - offset.y}px`; 
 });
-
 window.addEventListener('mouseup', (e) => {
     if (!draggingElement) return;
     const rect = document.getElementById('canvas-container').getBoundingClientRect();
