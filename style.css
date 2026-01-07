@@ -1,4 +1,4 @@
-/* --- DATA VIEW PRO MASTER STYLES --- */
+/* --- DATA VIEW PRO: MASTER STYLE SYSTEM --- */
 :root {
   --primary-grad: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   --success-grad: linear-gradient(135deg, #00b09b 0%, #96c93d 100%);
@@ -14,49 +14,83 @@ body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg-soft); 
 #app { height: 100vh; display: flex; flex-direction: column; }
 .main-content { display: flex; flex: 1; overflow: hidden; }
 
-/* Menu (50% Centered) */
-.home-container { width: 50%; margin: 0 auto; padding: 60px 0; box-sizing: border-box; display: flex; flex-direction: column; }
+/* --- HOME MENU (50% WIDTH) --- */
+.home-container { width: 50%; margin: 0 auto; padding: 60px 0; display: flex; flex-direction: column; box-sizing: border-box; }
 @media (max-width: 1024px) { .home-container { width: 85%; } }
 
-.main-heading { font-size: 2.5rem; font-weight: 900; margin-bottom: 40px; text-align: center; background: var(--primary-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-.view-card { background: white; padding: 25px; border-radius: 20px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+.main-heading { 
+  font-size: 2.5rem; font-weight: 900; margin-bottom: 40px; text-align: center; 
+  background: var(--primary-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; 
+}
 
-/* Sidebar Editor */
-.editor-sidebar { width: 380px; background: white; border-right: 1px solid var(--light-grey); padding: 25px; overflow-y: auto; box-sizing: border-box; }
+.view-card {
+  background: white; padding: 25px; border-radius: 24px; margin-bottom: 20px;
+  display: flex; justify-content: space-between; align-items: center;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.03); border: 1px solid #f1f5f9;
+}
+
+/* --- SIDEBAR --- */
+.editor-sidebar {
+  width: 380px; background: white; border-right: 1px solid var(--light-grey);
+  display: flex; flex-direction: column; padding: 25px; 
+  box-shadow: 10px 0 30px rgba(0,0,0,0.03); z-index: 100; overflow-y: auto; box-sizing: border-box;
+}
 .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
 #save-badge { font-size: 0.7rem; color: #10b981; opacity: 0; transition: 0.3s; font-weight: 700; text-transform: uppercase; }
-input[type="text"], select { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--light-grey); background: #f8fafc; margin-bottom: 15px; box-sizing: border-box; outline: none; }
 
-/* 16:9 Canvas */
+input[type="text"], select {
+  width: 100%; padding: 14px 18px; border-radius: 20px; border: 1px solid var(--light-grey); 
+  font-size: 0.95rem; background: #f8fafc; outline: none; box-sizing: border-box;
+}
 
-.canvas-area { flex: 1; padding: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.canvas-16-9 { position: relative; width: 100%; max-width: 1100px; aspect-ratio: 16/9; background: white; box-shadow: 0 20px 50px rgba(0,0,0,0.1); border-radius: 30px; overflow: hidden; }
-.box-instance { position: absolute; border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 15px; border: 1px solid rgba(255,255,255,0.4); }
+/* --- CANVAS & BOXES --- */
+.canvas-area { flex: 1; padding: 40px; display: flex; flex-direction: column; align-items: center; position: relative; overflow-y: auto; }
+.canvas-16-9 { 
+  position: relative; width: 100%; max-width: 1100px; aspect-ratio: 16 / 9; 
+  background: white; border-radius: 35px; border: 1px solid var(--light-grey);
+  box-shadow: 0 25px 60px rgba(0,0,0,0.05); overflow: hidden;
+}
+
+.box-instance { 
+  position: absolute; display: flex; flex-direction: column; align-items: center; 
+  border-radius: 24px; box-sizing: border-box; padding: 15px; 
+  border: 1px solid rgba(255,255,255,0.4); margin: 8px; 
+  width: calc(var(--w-pct) - 16px) !important; height: calc(var(--h-pct) - 16px) !important;
+}
+
 .selected-box { outline: 4px solid #667eea; outline-offset: 4px; z-index: 10; }
-.box-title { font-size: 0.8rem; font-weight: 700; opacity: 0.5; text-transform: uppercase; margin-bottom: 5px; }
+.box-instance.dragging { z-index: 9999 !important; border: 3px solid #000 !important; opacity: 0.8; pointer-events: none; }
+.box-title { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.45; }
 .box-content { flex: 1; display: flex; align-items: center; justify-content: center; font-weight: 800; text-align: center; width: 100%; word-wrap: break-word; }
 
-/* Fullscreen Presentation & Modal */
+/* --- PRESENTATION --- */
 .presentation-fullscreen { position: fixed; inset: 0; background: #000; display: flex; align-items: center; justify-content: center; z-index: 9999; }
 .slide-fit { width: 100vw; height: 56.25vw; max-height: 100vh; max-width: 177.78vh; position: relative; overflow: hidden; }
-.popup-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); display: flex; align-items: center; justify-content: center; z-index: 10001; backdrop-filter: blur(15px); }
-.detail-modal { width: 95%; height: 92%; border-radius: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px; box-sizing: border-box; }
-.detail-value { font-size: 8rem; font-weight: 900; margin-bottom: 40px; text-align: center; line-height: 1; word-break: break-all; }
 
-/* Buttons */
-button { border: none; border-radius: 15px; cursor: pointer; color: white; font-weight: 700; padding: 12px 24px; transition: 0.2s; }
-.primary-btn { background: var(--success-grad); padding: 22px; width: 100%; font-size: 1.2rem; margin-bottom: 20px; }
-.blue-btn { background: var(--primary-grad); }
-.orange-btn { background: var(--orange-grad); }
-.danger-btn { background: var(--danger-grad); }
+.presentation-nav {
+  position: fixed; bottom: 20px; left: 20px;
+  background: rgba(15, 23, 42, 0.9); padding: 8px 12px; border-radius: 15px;
+  display: flex; gap: 8px; align-items: center; z-index: 10000;
+}
+.presentation-nav span { color: white; font-size: 0.75rem; font-weight: 700; }
+.presentation-nav svg { width: 18px; height: 18px; fill: white; }
+
+/* --- DETAIL MODAL --- */
+.popup-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); display: flex; align-items: center; justify-content: center; z-index: 10001; backdrop-filter: blur(15px); }
+.detail-modal { width: 95%; height: 92%; border-radius: 35px; padding: 40px; display: flex; flex-direction: column; justify-content: center; align-items: center; box-sizing: border-box; }
+.detail-value { font-size: 7rem; font-weight: 900; margin-bottom: 40px; line-height: 1; text-align: center; }
+
+/* --- BUTTONS --- */
+button { cursor: pointer; border: none; font-weight: 700; border-radius: 20px; transition: 0.3s; color: white; text-transform: uppercase; }
+.primary-btn { background: var(--success-grad); width: 100%; padding: 22px; font-size: 1.1rem; }
+.blue-btn { background: var(--primary-grad); padding: 15px 25px; }
+.orange-btn { background: var(--orange-grad); padding: 15px 25px; }
+.danger-btn { background: var(--danger-grad); padding: 15px 25px; }
 .size-btn { background: var(--slate); padding: 12px; font-family: monospace; font-size: 0.9rem; }
 
-/* Presentation Nav */
-.presentation-nav { position: fixed; bottom: 25px; left: 25px; background: rgba(15,23,42,0.9); color: white; padding: 10px 15px; border-radius: 15px; display: flex; gap: 10px; align-items: center; box-shadow: 0 10px 20px rgba(0,0,0,0.3); z-index: 10000; }
-
-/* Utils */
-.color-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+/* --- UTILS --- */
+.color-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
 .circle { width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; cursor: pointer; }
 .pills-container { display: flex; flex-wrap: wrap; gap: 8px; max-height: 200px; overflow-y: auto; }
-.var-pill { padding: 8px 15px; background: #f1f5f9; border-radius: 20px; font-size: 0.8rem; cursor: pointer; }
+.var-pill { padding: 10px 18px; background: white; border: 1px solid var(--light-grey); border-radius: 50px; font-size: 0.85rem; cursor: pointer; }
 .var-pill.selected { background: var(--orange-grad); color: white; }
