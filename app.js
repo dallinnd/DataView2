@@ -243,8 +243,16 @@ function renderGlobalControls() {
 function renderBoxControls() {
     const box = currentView.boxes[selectedBoxIdx];
     const hasData = currentView.headers && currentView.headers.length > 0;
+    
+    // Default fontSize if missing (backward compatibility)
+    if (!box.fontSize) box.fontSize = 24; 
+
     return `
-        <div class="property-group"><h4>Label</h4><input type="text" value="${box.title}" oninput="syncBoxAttr(${selectedBoxIdx}, 'title', this.value, false)"></div>
+        <div class="property-group">
+            <h4>Label</h4>
+            <input type="text" value="${box.title}" oninput="syncBoxAttr(${selectedBoxIdx}, 'title', this.value, false)">
+        </div>
+
         <div class="property-group">
             <h4>Mode</h4>
             <select onchange="setBoxMode(${selectedBoxIdx}, this.value === 'var')">
@@ -252,19 +260,34 @@ function renderBoxControls() {
                 <option value="var" ${box.isVar ? 'selected' : ''}>Excel Variable</option>
             </select>
         </div>
+
         <div class="property-group">
-            <h4>Content</h4>
+            <h4>Content Source</h4>
             ${!box.isVar ? `<input type="text" value="${box.textVal}" oninput="syncBoxAttr(${selectedBoxIdx}, 'textVal', this.value, false)">` : 
             (hasData ? `<div class="pills-container">${currentView.headers.map(h => `<div class="var-pill ${box.textVal === h ? 'selected' : ''}" onclick="syncBoxAttr(${selectedBoxIdx}, 'textVal', '${h}', true)">${h}</div>`).join('')}</div>` 
             : `<button class="orange-btn" style="width:100%;" onclick="uploadExcel()">Upload Excel First</button>`)}
         </div>
+
         <div class="property-group">
-            <h4>Appearance</h4>
+            <h4>Content Size</h4>
+            <div style="display:flex; align-items:center; justify-content:space-between; background:#f8fafc; padding:10px; border-radius:15px; border:1px solid #e2e8f0;">
+                <button class="blue-btn" style="width:50px; padding:10px;" onclick="syncBoxAttr(${selectedBoxIdx}, 'fontSize', ${box.fontSize - 4}, true)">-</button>
+                <span style="font-weight:800; color:var(--slate); font-size:1.1rem;">${box.fontSize}px</span>
+                <button class="blue-btn" style="width:50px; padding:10px;" onclick="syncBoxAttr(${selectedBoxIdx}, 'fontSize', ${box.fontSize + 4}, true)">+</button>
+            </div>
+        </div>
+
+        <div class="property-group">
+            <h4>Background Color</h4>
             <div class="color-grid">${bgPresets.map(c => `<div class="circle" style="background:${c}" onclick="syncBoxAttr(${selectedBoxIdx}, 'bgColor', '${c}', true)"></div>`).join('')}</div>
-            <p style="margin-top:10px; font-size:0.7rem;">Text Color</p>
+        </div>
+
+        <div class="property-group">
+            <h4>Text Color</h4>
             <div class="color-grid">${textPresets.map(c => `<div class="circle" style="background:${c}" onclick="syncBoxAttr(${selectedBoxIdx}, 'textColor', '${c}', true)"></div>`).join('')}</div>
         </div>
-        <button class="danger-btn" style="width:100%;" onclick="deleteBox(${selectedBoxIdx})">Delete Box</button>`;
+
+        <button class="danger-btn" style="width:100%; margin-top:10px;" onclick="deleteBox(${selectedBoxIdx})">Delete Box</button>`;
 }
 
 // --- 7. PRESENTATION ENGINE ---
