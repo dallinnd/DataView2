@@ -1,6 +1,6 @@
 /**
- * DATA VIEW PRO - MASTER ENGINE v64.0
- * COMPLETE: Hard Sync, Expanded Layouts, Font Controls, History & Export
+ * DATA VIEW PRO - MASTER ENGINE v63.0
+ * CRITICAL UPDATE: Hard Commit System for Data Persistence
  */
 
 let views = [];
@@ -19,9 +19,9 @@ const iconHome = `<svg viewBox="0 0 24 24" width="20" height="20"><path fill="wh
 const iconLeft = `<svg viewBox="0 0 24 24" width="20" height="20"><path fill="white" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>`;
 const iconRight = `<svg viewBox="0 0 24 24" width="20" height="20"><path fill="white" d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>`;
 
-// --- 1. INITIALIZATION & SYNC ---
+// --- 1. INITIALIZATION & DATA LOADING ---
 document.addEventListener('DOMContentLoaded', () => {
-    refreshGlobalData();
+    refreshGlobalData(); // Load data immediately on start
     const params = new URLSearchParams(window.location.search);
     const viewId = params.get('view');
     if (viewId) {
@@ -30,19 +30,27 @@ document.addEventListener('DOMContentLoaded', () => {
     } else { renderHome(); }
 });
 
+// Force reload from LocalStorage to ensure we have the latest edits
 function refreshGlobalData() {
     const saved = localStorage.getItem('dataView_master_v52');
     views = saved ? JSON.parse(saved) : [];
 }
 
-// HARD COMMIT: Forces data to disk
+// THE HARD COMMIT: Updates the specific view in the master array and saves to disk
 function triggerSave() {
     if (currentView) {
+        // Find index of current view in the master list
         const idx = views.findIndex(v => v.createdAt === currentView.createdAt);
-        if (idx !== -1) views[idx] = currentView;
-        else views.push(currentView);
+        if (idx !== -1) {
+            views[idx] = currentView; // Update the master record
+        } else {
+            views.push(currentView); // Or add if new
+        }
     }
+    // Commit to storage
     localStorage.setItem('dataView_master_v52', JSON.stringify(views));
+    
+    // UI Feedback
     const badge = document.getElementById('save-badge');
     if (badge) { badge.style.opacity = "1"; setTimeout(() => badge.style.opacity = "0", 800); }
 }
@@ -50,7 +58,7 @@ function triggerSave() {
 // --- 2. NAVIGATION ---
 function renderHome() {
     currentView = null;
-    refreshGlobalData();
+    refreshGlobalData(); // Always get fresh data
     document.getElementById('app').innerHTML = `
         <div class="home-container">
             <h1 class="main-heading">Data View Pro</h1>
@@ -65,9 +73,9 @@ function renderHome() {
 }
 
 function openMenu(id) {
-    refreshGlobalData();
+    refreshGlobalData(); // Sync before opening
     currentView = views.find(v => v.createdAt == id);
-    if (!currentView) return renderHome();
+    if(!currentView) return renderHome();
 
     document.getElementById('app').innerHTML = `
         <div class="home-container">
@@ -83,7 +91,93 @@ function openMenu(id) {
         </div>`;
 }
 
-// --- 3. EDITOR UI ---
+// --- 3. THE CRITICAL LIVE EDIT FUNCTION ---
+function editLiveValue(idx) {
+    const box = currentView.boxes[idx];
+    const colKey = box.textVal;
+    
+    // Get current value safely
+    const oldVal = currentView.data[currentRowIndex][colKey] || '---';
+    const newVal = prompt(`Edit Row ${currentRowIndex + 1} - ${colKey}:`, oldVal);
+    
+    // Logic: Only save if value changed and is not null (Cancel)
+    if (newVal !== null && newVal !== String(oldVal)) {
+        
+        // 1. Ensure history array exists
+        if (!currentView.history) currentView.history = [];
+        
+        // 2. Add to History (UNSHIFT puts it at the TOP)
+        currentView.history.unshift({
+            timestamp: new Date().toLocaleTimeString(),
+            rowNumber: currentRowIndex + 1,
+            column: colKey,
+            oldValue: String(oldVal),
+            newValue: String(newVal)
+        });
+
+        // 3. Update the Actual Data Row
+        currentView.data[currentRowIndex][colKey] = newVal;
+        
+        // 4. HARD SAVE: Write to LocalStorage immediately
+        triggerSave(); 
+        
+        // 5. Refresh the Presentation UI
+        closePop(); 
+        renderSlideContent();
+    }
+}
+
+// --- 4. HISTORY VIEW (Syncs on Load) ---
+function renderHistoryView() {
+    refreshGlobalData(); // Grab latest data from storage
+    currentView = views.find(v => v.createdAt == currentView.createdAt);
+
+    const history = currentView.history || [];
+    const rows = history.length > 0 ? history.map(h => `
+        <tr>
+            <td>${h.timestamp}</td>
+            <td><strong>Row ${h.rowNumber}</strong></td>
+            <td>${h.column}</td>
+            <td style="color:var(--danger-grad); text-decoration:line-through;">${h.oldValue}</td>
+            <td style="color:#10b981; font-weight:800;">${h.newValue}</td>
+        </tr>`).join('') : '<tr><td colspan="5" style="text-align:center; padding:50px; color:var(--slate);">No edits recorded yet.</td></tr>';
+
+    document.getElementById('app').innerHTML = `
+        <div class="home-container" style="width:95%; max-width:1100px;">
+            <button class="blue-btn" style="background:var(--slate); margin-bottom:20px;" onclick="openMenu('${currentView.createdAt}')">← Back</button>
+            <h1 class="main-heading" style="text-align:left;">History Audit</h1>
+            <div style="background:white; border-radius:24px; padding:10px; box-shadow:0 10px 30px rgba(0,0,0,0.05);">
+                <table class="history-table">
+                    <thead><tr><th>Time</th><th>Row</th><th>Field</th><th>Original</th><th>Updated</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>
+            <button class="danger-btn" style="margin-top:20px;" onclick="if(confirm('Clear Log?')){currentView.history=[]; triggerSave(); renderHistoryView();}">Clear Log</button>
+        </div>`;
+}
+
+// --- 5. EXPORT PACK (Uses Synced Data) ---
+function exportFinalFiles() {
+    refreshGlobalData(); // Ensure we export what is on disk
+    currentView = views.find(v => v.createdAt == currentView.createdAt);
+
+    if (!currentView.data || !currentView.data.length) return alert("No data to export.");
+    
+    // Generate Excel from the MODIFIED data
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(currentView.data);
+    XLSX.utils.book_append_sheet(wb, ws, "Master_Data");
+    XLSX.writeFile(wb, `${currentView.name}_Updated.xlsx`);
+
+    // Generate History Log
+    const log = (currentView.history || []).map(h => `[${h.timestamp}] Row ${h.rowNumber} | ${h.column}: ${h.oldValue} -> ${h.newValue}`).join('\n');
+    if (log) {
+        const blob = new Blob([`HISTORY LOG FOR: ${currentView.name}\n\n` + log], { type: 'text/plain' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${currentView.name}_Log.txt`; a.click();
+    }
+}
+
+// --- 6. EDITOR & CANVAS ---
 function renderEditCanvas() {
     selectedBoxIdx = null;
     document.getElementById('app').innerHTML = `
@@ -116,18 +210,11 @@ function renderGlobalControls() {
         <div class="property-group"><h4>View Name</h4><input type="text" value="${currentView.name}" oninput="currentView.name=this.value; triggerSave();"></div>
         <div class="property-group">
             <h4>Layout Tools</h4>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-                <button class="size-btn" onclick="addNewBoxDirectly(1,1)">+ 1x1 Small</button>
-                <button class="size-btn" onclick="addNewBoxDirectly(2,1)">+ 2x1 Wide</button>
-                <button class="size-btn" onclick="addNewBoxDirectly(3,1)">+ 3x1 Wide</button>
-                <button class="size-btn" onclick="addNewBoxDirectly(4,1)">+ 4x1 Wide</button>
-                <button class="size-btn" style="grid-column:span 2;" onclick="addNewBoxDirectly(6,1)">+ 6x1 Full Width</button>
-                
-                <button class="size-btn" onclick="addNewBoxDirectly(2,2)">+ 2x2 Square</button>
-                <button class="size-btn" onclick="addNewBoxDirectly(3,2)">+ 3x2 Block</button>
-                <button class="size-btn" onclick="addNewBoxDirectly(4,2)">+ 4x2 Block</button>
-                <button class="size-btn" onclick="addNewBoxDirectly(3,3)">+ 3x3 Large</button>
-                <button class="size-btn" style="grid-column:span 2;" onclick="addNewBoxDirectly(4,4)">+ 4x4 Full Height</button>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <button class="size-btn" onclick="addNewBoxDirectly(1,1)">+ 1x1 Box</button>
+                <button class="size-btn" onclick="addNewBoxDirectly(2,1)">+ 2x1 Box</button>
+                <button class="size-btn" onclick="addNewBoxDirectly(3,1)">+ 3x1 Box</button>
+                <button class="size-btn" onclick="addNewBoxDirectly(2,2)">+ 2x2 Box</button>
             </div>
         </div>
         <div class="property-group"><h4>Canvas Theme</h4><div class="color-grid">${bgPresets.map(c => `<div class="circle" style="background:${c}" onclick="updateCanvasBg('${c}')"></div>`).join('')}</div></div>
@@ -137,8 +224,6 @@ function renderGlobalControls() {
 function renderBoxControls() {
     const box = currentView.boxes[selectedBoxIdx];
     const hasData = currentView.headers && currentView.headers.length > 0;
-    if (!box.fontSize) box.fontSize = 24;
-
     return `
         <div class="property-group"><h4>Label</h4><input type="text" value="${box.title}" oninput="syncBoxAttr(${selectedBoxIdx}, 'title', this.value, false)"></div>
         <div class="property-group">
@@ -149,65 +234,21 @@ function renderBoxControls() {
             </select>
         </div>
         <div class="property-group">
-            <h4>Content Source</h4>
+            <h4>Content</h4>
             ${!box.isVar ? `<input type="text" value="${box.textVal}" oninput="syncBoxAttr(${selectedBoxIdx}, 'textVal', this.value, false)">` : 
             (hasData ? `<div class="pills-container">${currentView.headers.map(h => `<div class="var-pill ${box.textVal === h ? 'selected' : ''}" onclick="syncBoxAttr(${selectedBoxIdx}, 'textVal', '${h}', true)">${h}</div>`).join('')}</div>` 
             : `<button class="orange-btn" style="width:100%;" onclick="uploadExcel()">Upload Excel First</button>`)}
         </div>
         <div class="property-group">
-            <h4>Content Size</h4>
-            <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:10px; border-radius:15px; border:1px solid #e2e8f0;">
-                <button class="blue-btn" style="width:40px; padding:8px;" onclick="syncBoxAttr(${selectedBoxIdx}, 'fontSize', ${box.fontSize - 4}, true)">-</button>
-                <span style="font-weight:800; color:var(--slate); font-size:1.1rem;">${box.fontSize}px</span>
-                <button class="blue-btn" style="width:40px; padding:8px;" onclick="syncBoxAttr(${selectedBoxIdx}, 'fontSize', ${box.fontSize + 4}, true)">+</button>
-            </div>
+            <h4>Appearance</h4>
+            <div class="color-grid">${bgPresets.map(c => `<div class="circle" style="background:${c}" onclick="syncBoxAttr(${selectedBoxIdx}, 'bgColor', '${c}', true)"></div>`).join('')}</div>
+            <p style="margin-top:10px; font-size:0.7rem;">Text Color</p>
+            <div class="color-grid">${textPresets.map(c => `<div class="circle" style="background:${c}" onclick="syncBoxAttr(${selectedBoxIdx}, 'textColor', '${c}', true)"></div>`).join('')}</div>
         </div>
-        <div class="property-group"><h4>Background</h4><div class="color-grid">${bgPresets.map(c => `<div class="circle" style="background:${c}" onclick="syncBoxAttr(${selectedBoxIdx}, 'bgColor', '${c}', true)"></div>`).join('')}</div></div>
-        <div class="property-group"><h4>Text Color</h4><div class="color-grid">${textPresets.map(c => `<div class="circle" style="background:${c}" onclick="syncBoxAttr(${selectedBoxIdx}, 'textColor', '${c}', true)"></div>`).join('')}</div></div>
         <button class="danger-btn" style="width:100%;" onclick="deleteBox(${selectedBoxIdx})">Delete Box</button>`;
 }
 
-// --- 4. CANVAS DRAWING (Editor) ---
-function drawBoxes() {
-    const layer = document.getElementById('boxes-layer'); if(!layer) return; layer.innerHTML = '';
-    currentView.boxes.forEach((box, i) => {
-        const fSize = box.fontSize || 24;
-        const div = document.createElement('div');
-        div.className = `box-instance ${selectedBoxIdx === i ? 'selected-box' : ''}`;
-        div.style.cssText = `left:${(box.x/6)*100}%; top:${(box.y/4)*100}%; --w-pct:${(box.w/6)*100}%; --h-pct:${(box.h/4)*100}%; background:${box.bgColor}; color:${box.textColor};`;
-        div.innerHTML = `<div class="box-title" style="color:${box.textColor}; opacity:0.6;">${box.title}</div><div class="box-content" style="font-size:${fSize}px;">${box.isVar ? "VAR" : box.textVal}</div>`;
-        div.onmousedown = (e) => { startDragExisting(e, i); };
-        layer.appendChild(div);
-    });
-}
-
-function startDragExisting(e, idx) {
-    e.preventDefault(); dragIdx = idx;
-    const original = e.currentTarget; const rect = original.getBoundingClientRect();
-    draggingElement = original.cloneNode(true); draggingElement.classList.add('dragging');
-    offset.x = e.clientX - rect.left; offset.y = e.clientY - rect.top;
-    document.getElementById('canvas-container').appendChild(draggingElement);
-}
-
-window.addEventListener('mousemove', (e) => { 
-    if (!draggingElement) return; 
-    const rect = document.getElementById('canvas-container').getBoundingClientRect(); 
-    draggingElement.style.left = `${e.clientX - rect.left - offset.x}px`; 
-    draggingElement.style.top = `${e.clientY - rect.top - offset.y}px`; 
-});
-
-window.addEventListener('mouseup', (e) => {
-    if (!draggingElement) return;
-    const rect = document.getElementById('canvas-container').getBoundingClientRect();
-    const gridX = Math.round(((e.clientX - rect.left - offset.x) / rect.width) * 6);
-    const gridY = Math.round(((e.clientY - rect.top - offset.y) / rect.height) * 4);
-    if (gridX >= 0 && gridY >= 0 && gridX + currentView.boxes[dragIdx].w <= 6 && gridY + currentView.boxes[dragIdx].h <= 4) {
-        currentView.boxes[dragIdx].x = gridX; currentView.boxes[dragIdx].y = gridY; triggerSave();
-    }
-    draggingElement.remove(); draggingElement = null; selectedBoxIdx = dragIdx; refreshSidebar(); drawBoxes();
-});
-
-// --- 5. PRESENTATION & LIVE EDIT ---
+// --- 7. PRESENTATION ENGINE ---
 function startPresentation() {
     document.getElementById('app').innerHTML = `
         <div class="presentation-fullscreen">
@@ -220,22 +261,17 @@ function startPresentation() {
             </div>
         </div>`;
     renderSlideContent();
-    window.onkeydown = (e) => { 
-        if (e.key === 'ArrowRight' || e.key === ' ') nextSlide(); 
-        if (e.key === 'ArrowLeft') prevSlide(); 
-        if (e.key === 'Escape') closePop();
-    };
+    window.onkeydown = (e) => { if (e.key === 'ArrowRight' || e.key === ' ') nextSlide(); if (e.key === 'ArrowLeft') prevSlide(); if (e.key === 'Escape') closePop(); };
 }
 
 function renderSlideContent() {
     const canvas = document.getElementById('slide-canvas'); if (!canvas) return; canvas.innerHTML = '';
     const row = currentView.data[currentRowIndex] || {};
     currentView.boxes.forEach((box, i) => {
-        const fSize = box.fontSize || 24;
         const div = document.createElement('div'); div.className = 'box-instance';
         div.style.cssText = `left:${(box.x/6)*100}%; top:${(box.y/4)*100}%; --w-pct:${(box.w/6)*100}%; --h-pct:${(box.h/4)*100}%; background:${box.bgColor}; color:${box.textColor}; cursor:pointer;`;
         const val = box.isVar ? (row[box.textVal] || '---') : box.textVal;
-        div.innerHTML = `<div class="box-title" style="color:${box.textColor}; opacity:0.6;">${box.title}</div><div class="box-content" style="font-size:${fSize}px;">${val}</div>`;
+        div.innerHTML = `<div class="box-title" style="color:${box.textColor};">${box.title}</div><div class="box-content" style="font-size:${box.fontSize}px;">${val}</div>`;
         div.onclick = (e) => { e.stopPropagation(); openLargePopup(i, val); };
         canvas.appendChild(div);
     });
@@ -257,61 +293,44 @@ function openLargePopup(idx, val) {
     document.body.appendChild(overlay); 
 }
 
-function editLiveValue(idx) {
-    const box = currentView.boxes[idx];
-    const colKey = box.textVal;
-    const oldVal = currentView.data[currentRowIndex][colKey] || '---';
-    const newVal = prompt(`Edit Row ${currentRowIndex + 1} - ${colKey}:`, oldVal);
-    
-    if (newVal !== null && newVal !== String(oldVal)) {
-        if (!currentView.history) currentView.history = [];
-        currentView.history.unshift({
-            timestamp: new Date().toLocaleTimeString(), rowNumber: currentRowIndex + 1,
-            column: colKey, oldValue: String(oldVal), newValue: String(newVal)
-        });
-        currentView.data[currentRowIndex][colKey] = newVal;
-        triggerSave(); closePop(); renderSlideContent();
-    }
-}
-
-// --- 6. HISTORY LOG VIEW ---
-function renderHistoryView() {
-    refreshGlobalData();
-    currentView = views.find(v => v.createdAt == currentView.createdAt);
-    const history = currentView.history || [];
-    const rows = history.length > 0 ? history.map(h => `
-        <tr><td>${h.timestamp}</td><td><strong>Row ${h.rowNumber}</strong></td><td>${h.column}</td><td style="color:var(--danger-grad);text-decoration:line-through;">${h.oldValue}</td><td style="color:#10b981;font-weight:800;">${h.newValue}</td></tr>`).join('') : '<tr><td colspan="5" style="text-align:center; padding:50px;">No edits found.</td></tr>';
-
-    document.getElementById('app').innerHTML = `
-        <div class="home-container" style="width:95%; max-width:1100px;">
-            <button class="blue-btn" style="background:var(--slate); margin-bottom:20px;" onclick="openMenu('${currentView.createdAt}')">← Back</button>
-            <h1 class="main-heading" style="text-align:left;">History Audit</h1>
-            <div style="background:white; border-radius:24px; padding:10px; box-shadow:0 10px 30px rgba(0,0,0,0.05);">
-                <table class="history-table"><thead><tr><th>Time</th><th>Row</th><th>Field</th><th>Original</th><th>Updated</th></tr></thead><tbody>${rows}</tbody></table>
-            </div>
-            <button class="danger-btn" style="margin-top:20px;" onclick="if(confirm('Clear Log?')){currentView.history=[]; triggerSave(); renderHistoryView();}">Clear Log</button>
-        </div>`;
-}
-
-// --- 7. EXPORT PACK ---
-function exportFinalFiles() {
-    refreshGlobalData();
-    currentView = views.find(v => v.createdAt == currentView.createdAt);
-    if (!currentView.data || !currentView.data.length) return alert("No data.");
-    
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(currentView.data);
-    XLSX.utils.book_append_sheet(wb, ws, "Master_Data");
-    XLSX.writeFile(wb, `${currentView.name}_Updated.xlsx`);
-
-    const log = (currentView.history || []).map(h => `[${h.timestamp}] Row ${h.rowNumber} | ${h.column}: ${h.oldValue} -> ${h.newValue}`).join('\n');
-    if (log) {
-        const blob = new Blob([`LOG FOR: ${currentView.name}\n\n` + log], { type: 'text/plain' });
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${currentView.name}_Log.txt`; a.click();
-    }
-}
-
 // --- UTILS ---
+function drawBoxes() {
+    const layer = document.getElementById('boxes-layer'); if(!layer) return; layer.innerHTML = '';
+    currentView.boxes.forEach((box, i) => {
+        const div = document.createElement('div');
+        div.className = `box-instance ${selectedBoxIdx === i ? 'selected-box' : ''}`;
+        div.style.cssText = `left:${(box.x/6)*100}%; top:${(box.y/4)*100}%; --w-pct:${(box.w/6)*100}%; --h-pct:${(box.h/4)*100}%; background:${box.bgColor}; color:${box.textColor};`;
+        div.innerHTML = `<div class="box-title">${box.title}</div><div class="box-content">${box.isVar ? "VARIABLE" : box.textVal}</div>`;
+        div.onmousedown = (e) => { startDragExisting(e, i); };
+        layer.appendChild(div);
+    });
+}
+
+function startDragExisting(e, idx) {
+    e.preventDefault(); dragIdx = idx;
+    const original = e.currentTarget; const rect = original.getBoundingClientRect();
+    draggingElement = original.cloneNode(true); draggingElement.classList.add('dragging');
+    offset.x = e.clientX - rect.left; offset.y = e.clientY - rect.top;
+    document.getElementById('canvas-container').appendChild(draggingElement);
+}
+
+window.addEventListener('mousemove', (e) => { 
+    if (!draggingElement) return; 
+    const rect = document.getElementById('canvas-container').getBoundingClientRect(); 
+    draggingElement.style.left = `${e.clientX - rect.left - offset.x}px`; 
+    draggingElement.style.top = `${e.clientY - rect.top - offset.y}px`; 
+});
+window.addEventListener('mouseup', (e) => {
+    if (!draggingElement) return;
+    const rect = document.getElementById('canvas-container').getBoundingClientRect();
+    const gridX = Math.round(((e.clientX - rect.left - offset.x) / rect.width) * 6);
+    const gridY = Math.round(((e.clientY - rect.top - offset.y) / rect.height) * 4);
+    if (gridX >= 0 && gridY >= 0 && gridX + currentView.boxes[dragIdx].w <= 6 && gridY + currentView.boxes[dragIdx].h <= 4) {
+        currentView.boxes[dragIdx].x = gridX; currentView.boxes[dragIdx].y = gridY; triggerSave();
+    }
+    draggingElement.remove(); draggingElement = null; selectedBoxIdx = dragIdx; refreshSidebar(); drawBoxes();
+});
+
 function uploadExcel() {
     const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.xlsx';
     inp.onchange = (e) => {
@@ -334,6 +353,7 @@ function addNewBoxDirectly(w, h) {
 
 function syncBoxAttr(idx, key, val, reload) { currentView.boxes[idx][key] = val; triggerSave(); drawBoxes(); if(reload) refreshSidebar(); }
 function setBoxMode(idx, mode) { currentView.boxes[idx].isVar = mode; triggerSave(); refreshSidebar(); drawBoxes(); }
+function refreshSidebar() { const sb = document.getElementById('sidebar'); if(sb) sb.innerHTML = renderSidebarContent(); }
 function closePop() { const p = document.querySelector('.popup-overlay'); if(p) p.remove(); }
 function nextSlide() { if(currentRowIndex < currentView.data.length - 1) { currentRowIndex++; renderSlideContent(); updateCounter(); } }
 function prevSlide() { if(currentRowIndex > 0) { currentRowIndex--; renderSlideContent(); updateCounter(); } }
