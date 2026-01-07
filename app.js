@@ -14,9 +14,9 @@ let offset = { x: 0, y: 0 };
 const bgPresets = ['#ffffff','#f8fafc','#f1f5f9','#e2e8f0','#cbd5e1','#94a3b8','#1e293b','#0f172a','#fee2e2','#ffedd5','#fef9c3','#dcfce7','#d1fae5','#dbeafe','#e0e7ff','#f5f3ff','linear-gradient(135deg, #667eea 0%, #764ba2 100%)','linear-gradient(135deg, #00b09b 0%, #96c93d 100%)','linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'];
 const textPresets = ['#000000','#ffffff','#ef4444','#3b82f6','#10b981','#f97316','#8b5cf6'];
 
-const iconHome = `<svg viewBox="0 0 24 24" width="20" height="20"><path fill="white" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>`;
-const iconLeft = `<svg viewBox="0 0 24 24" width="20" height="20"><path fill="white" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>`;
-const iconRight = `<svg viewBox="0 0 24 24" width="20" height="20"><path fill="white" d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>`;
+const iconHome = `<svg viewBox="0 0 24 24" width="20" height="20"><path fill="black" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>`;
+const iconLeft = `<svg viewBox="0 0 24 24" width="20" height="20"><path fill="black" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>`;
+const iconRight = `<svg viewBox="0 0 24 24" width="20" height="20"><path fill="black" d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>`;
 
 // --- 1. INITIALIZATION & DATA LOADING ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -221,11 +221,10 @@ function renderBoxControls() {
         <div class="property-group">
             <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
                 <h4>Font Size</h4>
-                <span style="font-weight:bold; color:var(--slate);">${box.fontSize || 32}px</span>
             </div>
             <div style="display:flex; align-items:center; gap:10px;">
                 <button class="blue-btn" style="padding:5px 15px;" onclick="updateFontSize(${selectedBoxIdx}, -2)">-</button>
-                <input type="range" min="12" max="150" value="${box.fontSize || 32}" oninput="syncBoxAttr(${selectedBoxIdx}, 'fontSize', parseInt(this.value), true)" style="flex:1">
+                <span style="font-weight:bold; color:var(--slate);">${box.fontSize || 32}px</span>
                 <button class="blue-btn" style="padding:5px 15px;" onclick="updateFontSize(${selectedBoxIdx}, 2)">+</button>
             </div>
         </div>
