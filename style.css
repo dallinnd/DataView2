@@ -52,10 +52,26 @@ input[type="text"], select {
 }
 
 .box-instance { 
-  position: absolute; display: flex; flex-direction: column; align-items: center; 
-  border-radius: 24px; box-sizing: border-box; padding: 15px; 
-  border: 1px solid rgba(255,255,255,0.4); margin: 8px; 
-  width: calc(var(--w-pct) - 16px) !important; height: calc(var(--h-pct) - 16px) !important;
+  position: absolute; 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  border-radius: 24px; 
+  box-sizing: border-box; 
+  padding: 15px; 
+  border: 1px solid rgba(255,255,255,0.4); 
+  margin: 8px; 
+  width: calc(var(--w-pct) - 16px) !important; 
+  height: calc(var(--h-pct) - 16px) !important;
+  /* Add these lines below */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Optional: Slight lift effect when hovering or selected */
+.box-instance:hover, .selected-box {
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
 }
 
 .selected-box { outline: 4px solid #667eea; outline-offset: 4px; z-index: 10; }
