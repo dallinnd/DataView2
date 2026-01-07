@@ -97,7 +97,7 @@ input[type="range"] { accent-color: #667eea; cursor: pointer; }
 
 .presentation-nav {
   position: fixed; bottom: 20px; left: 20px;
-  background: rgba(15, 23, 42, 0.9); padding: 10px 15px; border-radius: 15px;
+  background: rgba(234, 228, 219, 0.7); padding: 10px 15px; border-radius: 15px;
   display: flex; gap: 12px; align-items: center; z-index: 10000;
 }
-.presentation-nav span { color: black; font-size: 0.8rem; font-weight: 800; }
+.presentation-nav span { color: white; font-size: 0.8rem; font-weight: 800; }
