@@ -1,6 +1,6 @@
 /**
- * DATA VIEW PRO - MASTER ENGINE v64.0
- * COMPLETE: Hard Sync, Expanded Layouts, Font Controls, History & Export
+ * DATA VIEW PRO - MASTER ENGINE v65.0
+ * INCLUDES: Hard Sync, Font Size Controls, Expanded Layouts, and Click/Drag Fix
  */
 
 let views = [];
@@ -11,6 +11,10 @@ let varSearchTerm = "";
 let draggingElement = null;
 let dragIdx = -1;
 let offset = { x: 0, y: 0 };
+
+// VARIABLES FOR CLICK SENSITIVITY
+let dragStartX = 0;
+let dragStartY = 0;
 
 const bgPresets = ['#ffffff','#f8fafc','#f1f5f9','#e2e8f0','#cbd5e1','#94a3b8','#1e293b','#0f172a','#fee2e2','#ffedd5','#fef9c3','#dcfce7','#d1fae5','#dbeafe','#e0e7ff','#f5f3ff','linear-gradient(135deg, #667eea 0%, #764ba2 100%)','linear-gradient(135deg, #00b09b 0%, #96c93d 100%)','linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'];
 const textPresets = ['#000000','#ffffff','#ef4444','#3b82f6','#10b981','#f97316','#8b5cf6'];
@@ -183,8 +187,13 @@ function drawBoxes() {
 
 function startDragExisting(e, idx) {
     e.preventDefault(); dragIdx = idx;
-    const original = e.currentTarget; const rect = original.getBoundingClientRect();
-    draggingElement = original.cloneNode(true); draggingElement.classList.add('dragging');
+    dragStartX = e.clientX; dragStartY = e.clientY; // Store start pos
+    
+    const original = e.currentTarget; 
+    const rect = original.getBoundingClientRect();
+    draggingElement = original.cloneNode(true); 
+    draggingElement.classList.add('dragging');
+    
     offset.x = e.clientX - rect.left; offset.y = e.clientY - rect.top;
     document.getElementById('canvas-container').appendChild(draggingElement);
 }
@@ -198,13 +207,28 @@ window.addEventListener('mousemove', (e) => {
 
 window.addEventListener('mouseup', (e) => {
     if (!draggingElement) return;
-    const rect = document.getElementById('canvas-container').getBoundingClientRect();
-    const gridX = Math.round(((e.clientX - rect.left - offset.x) / rect.width) * 6);
-    const gridY = Math.round(((e.clientY - rect.top - offset.y) / rect.height) * 4);
-    if (gridX >= 0 && gridY >= 0 && gridX + currentView.boxes[dragIdx].w <= 6 && gridY + currentView.boxes[dragIdx].h <= 4) {
-        currentView.boxes[dragIdx].x = gridX; currentView.boxes[dragIdx].y = gridY; triggerSave();
+
+    // Calculate movement distance
+    const moveDist = Math.abs(e.clientX - dragStartX) + Math.abs(e.clientY - dragStartY);
+
+    if (moveDist < 5) {
+        // IT WAS A CLICK (SELECT)
+        selectedBoxIdx = dragIdx;
+        refreshSidebar();
+        drawBoxes();
+    } else {
+        // IT WAS A DRAG (MOVE)
+        const rect = document.getElementById('canvas-container').getBoundingClientRect();
+        const gridX = Math.round(((e.clientX - rect.left - offset.x) / rect.width) * 6);
+        const gridY = Math.round(((e.clientY - rect.top - offset.y) / rect.height) * 4);
+        if (gridX >= 0 && gridY >= 0 && gridX + currentView.boxes[dragIdx].w <= 6 && gridY + currentView.boxes[dragIdx].h <= 4) {
+            currentView.boxes[dragIdx].x = gridX; currentView.boxes[dragIdx].y = gridY; triggerSave();
+        }
+        selectedBoxIdx = dragIdx; // Select after move
+        refreshSidebar();
+        drawBoxes();
     }
-    draggingElement.remove(); draggingElement = null; selectedBoxIdx = dragIdx; refreshSidebar(); drawBoxes();
+    draggingElement.remove(); draggingElement = null; 
 });
 
 // --- 5. PRESENTATION & LIVE EDIT ---
@@ -220,11 +244,7 @@ function startPresentation() {
             </div>
         </div>`;
     renderSlideContent();
-    window.onkeydown = (e) => { 
-        if (e.key === 'ArrowRight' || e.key === ' ') nextSlide(); 
-        if (e.key === 'ArrowLeft') prevSlide(); 
-        if (e.key === 'Escape') closePop();
-    };
+    window.onkeydown = (e) => { if (e.key === 'ArrowRight' || e.key === ' ') nextSlide(); if (e.key === 'ArrowLeft') prevSlide(); if (e.key === 'Escape') closePop(); };
 }
 
 function renderSlideContent() {
@@ -265,10 +285,7 @@ function editLiveValue(idx) {
     
     if (newVal !== null && newVal !== String(oldVal)) {
         if (!currentView.history) currentView.history = [];
-        currentView.history.unshift({
-            timestamp: new Date().toLocaleTimeString(), rowNumber: currentRowIndex + 1,
-            column: colKey, oldValue: String(oldVal), newValue: String(newVal)
-        });
+        currentView.history.unshift({ timestamp: new Date().toLocaleTimeString(), rowNumber: currentRowIndex + 1, column: colKey, oldValue: String(oldVal), newValue: String(newVal) });
         currentView.data[currentRowIndex][colKey] = newVal;
         triggerSave(); closePop(); renderSlideContent();
     }
