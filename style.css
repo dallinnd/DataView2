@@ -1,4 +1,4 @@
-/* --- DATA VIEW PRO: MASTER STYLE SYSTEM v64 --- */
+/* --- DATA VIEW PRO: MASTER STYLE SYSTEM v65 --- */
 :root {
   --primary-grad: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   --success-grad: linear-gradient(135deg, #00b09b 0%, #96c93d 100%);
@@ -47,18 +47,28 @@ body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg-soft); 
   box-shadow: 0 25px 60px rgba(0,0,0,0.05); overflow: hidden;
 }
 
-/* --- BOXES --- */
+/* --- BOXES (UPDATED FOR CLICKS) --- */
 .box-instance { 
   position: absolute; display: flex; flex-direction: column; align-items: center; 
   border-radius: 24px; box-sizing: border-box; padding: 15px; 
   border: 1px solid rgba(255,255,255,0.4); margin: 8px;
   width: calc(var(--w-pct) - 16px) !important; height: calc(var(--h-pct) - 16px) !important;
   box-shadow: 0 6px 18px rgba(0,0,0,0.08); transition: transform 0.2s;
+  cursor: grab; /* Shows it's interactive */
 }
 .selected-box { outline: 4px solid #667eea; outline-offset: 4px; z-index: 10; }
 .box-instance.dragging { z-index: 9999 !important; border: 3px solid #000 !important; opacity: 0.8; pointer-events: none; }
-.box-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; opacity: 0.5; margin-bottom: 5px; }
-.box-content { flex: 1; display: flex; align-items: center; justify-content: center; font-weight: 800; text-align: center; width: 100%; word-wrap: break-word; line-height: 1.1; }
+
+/* IMPORTANT: pointer-events: none allows the click to pass through to the box div */
+.box-title { 
+    font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; 
+    opacity: 0.5; margin-bottom: 5px; pointer-events: none; 
+}
+.box-content { 
+    flex: 1; display: flex; align-items: center; justify-content: center; 
+    font-weight: 800; text-align: center; width: 100%; word-wrap: break-word; 
+    line-height: 1.1; pointer-events: none; 
+}
 
 /* --- HISTORY TABLE --- */
 .history-table { width: 100%; border-collapse: collapse; background: white; border-radius: 20px; overflow: hidden; margin-top: 20px; }
