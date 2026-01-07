@@ -337,12 +337,35 @@ function openLargePopup(idx, val) {
 
 // --- UTILS ---
 function drawBoxes() {
-    const layer = document.getElementById('boxes-layer'); if(!layer) return; layer.innerHTML = '';
+    const layer = document.getElementById('boxes-layer'); 
+    if(!layer) return; 
+    layer.innerHTML = '';
+    
     currentView.boxes.forEach((box, i) => {
+        // 1. Safety check: Default to 24px if new box
+        const fSize = box.fontSize || 24;
+
         const div = document.createElement('div');
         div.className = `box-instance ${selectedBoxIdx === i ? 'selected-box' : ''}`;
-        div.style.cssText = `left:${(box.x/6)*100}%; top:${(box.y/4)*100}%; --w-pct:${(box.w/6)*100}%; --h-pct:${(box.h/4)*100}%; background:${box.bgColor}; color:${box.textColor};`;
-        div.innerHTML = `<div class="box-title">${box.title}</div><div class="box-content">${box.isVar ? "VARIABLE" : box.textVal}</div>`;
+        
+        // 2. Apply Position & Colors
+        div.style.cssText = `
+            left:${(box.x/6)*100}%; 
+            top:${(box.y/4)*100}%; 
+            --w-pct:${(box.w/6)*100}%; 
+            --h-pct:${(box.h/4)*100}%; 
+            background:${box.bgColor}; 
+            color:${box.textColor};
+        `;
+        
+        // 3. Render Content with Dynamic Font Size
+        div.innerHTML = `
+            <div class="box-title" style="color:${box.textColor}; opacity:0.6;">${box.title}</div>
+            <div class="box-content" style="font-size:${fSize}px;">
+                ${box.isVar ? "VARIABLE" : box.textVal}
+            </div>
+        `;
+        
         div.onmousedown = (e) => { startDragExisting(e, i); };
         layer.appendChild(div);
     });
@@ -388,9 +411,15 @@ function uploadExcel() {
     inp.click();
 }
 
-function addNewBoxDirectly(w, h) {
-    currentView.boxes.push({ x: 0, y: 0, w: parseInt(w), h: parseInt(h), title: 'Label', textVal: 'Value', isVar: false, bgColor: '#ffffff', textColor: '#000000', fontSize: 24 });
-    triggerSave(); drawBoxes();
+ffunction addNewBoxDirectly(w, h) {
+    currentView.boxes.push({ 
+        x: 0, y: 0, w: parseInt(w), h: parseInt(h), 
+        title: 'Label', textVal: 'Value', isVar: false, 
+        bgColor: '#ffffff', textColor: '#000000', 
+        fontSize: 36 // <--- Ensures a valid start size
+    });
+    triggerSave(); 
+    drawBoxes();
 }
 
 function syncBoxAttr(idx, key, val, reload) { currentView.boxes[idx][key] = val; triggerSave(); drawBoxes(); if(reload) refreshSidebar(); }
