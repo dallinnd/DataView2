@@ -176,7 +176,7 @@ function renderSidebarContent() {
         <div class="sidebar-header">
             <h3>${isGlobal ? 'Global Settings' : 'Edit Box'}</h3>
             <div id="save-badge" style="color:#10b981; font-weight:800; opacity:0; font-size:0.7rem;">SAVED</div>
-            ${!isGlobal ? `<button onclick="deselectBox()" style="background:none; color:var(--dark); font-size:1.2rem; cursor:pointer;">✕</button>` : ''}
+            <div class="container"> <button onclick="deselectBox()" class="close-button">✕</button> </div>
         </div>
         ${isGlobal ? renderGlobalControls() : renderBoxControls()}`;
 }
