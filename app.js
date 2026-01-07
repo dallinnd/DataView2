@@ -1,13 +1,12 @@
 /**
- * DATA VIEW PRO - MASTER ENGINE v63.0
- * CRITICAL UPDATE: Hard Commit System for Data Persistence
+ * DATA VIEW PRO - MASTER ENGINE v64.0
+ * Features: Hard Commit System + Extended Box Sizes + Font Resizer
  */
 
 let views = [];
 let currentView = null;
 let currentRowIndex = 0;
 let selectedBoxIdx = null;
-let varSearchTerm = ""; 
 let draggingElement = null;
 let dragIdx = -1;
 let offset = { x: 0, y: 0 };
@@ -21,7 +20,7 @@ const iconRight = `<svg viewBox="0 0 24 24" width="20" height="20"><path fill="w
 
 // --- 1. INITIALIZATION & DATA LOADING ---
 document.addEventListener('DOMContentLoaded', () => {
-    refreshGlobalData(); // Load data immediately on start
+    refreshGlobalData();
     const params = new URLSearchParams(window.location.search);
     const viewId = params.get('view');
     if (viewId) {
@@ -30,27 +29,18 @@ document.addEventListener('DOMContentLoaded', () => {
     } else { renderHome(); }
 });
 
-// Force reload from LocalStorage to ensure we have the latest edits
 function refreshGlobalData() {
     const saved = localStorage.getItem('dataView_master_v52');
     views = saved ? JSON.parse(saved) : [];
 }
 
-// THE HARD COMMIT: Updates the specific view in the master array and saves to disk
 function triggerSave() {
     if (currentView) {
-        // Find index of current view in the master list
         const idx = views.findIndex(v => v.createdAt === currentView.createdAt);
-        if (idx !== -1) {
-            views[idx] = currentView; // Update the master record
-        } else {
-            views.push(currentView); // Or add if new
-        }
+        if (idx !== -1) views[idx] = currentView; else views.push(currentView);
     }
-    // Commit to storage
     localStorage.setItem('dataView_master_v52', JSON.stringify(views));
     
-    // UI Feedback
     const badge = document.getElementById('save-badge');
     if (badge) { badge.style.opacity = "1"; setTimeout(() => badge.style.opacity = "0", 800); }
 }
@@ -58,7 +48,7 @@ function triggerSave() {
 // --- 2. NAVIGATION ---
 function renderHome() {
     currentView = null;
-    refreshGlobalData(); // Always get fresh data
+    refreshGlobalData();
     document.getElementById('app').innerHTML = `
         <div class="home-container">
             <h1 class="main-heading">Data View Pro</h1>
@@ -73,7 +63,7 @@ function renderHome() {
 }
 
 function openMenu(id) {
-    refreshGlobalData(); // Sync before opening
+    refreshGlobalData();
     currentView = views.find(v => v.createdAt == id);
     if(!currentView) return renderHome();
 
@@ -96,17 +86,11 @@ function editLiveValue(idx) {
     const box = currentView.boxes[idx];
     const colKey = box.textVal;
     
-    // Get current value safely
     const oldVal = currentView.data[currentRowIndex][colKey] || '---';
     const newVal = prompt(`Edit Row ${currentRowIndex + 1} - ${colKey}:`, oldVal);
     
-    // Logic: Only save if value changed and is not null (Cancel)
     if (newVal !== null && newVal !== String(oldVal)) {
-        
-        // 1. Ensure history array exists
         if (!currentView.history) currentView.history = [];
-        
-        // 2. Add to History (UNSHIFT puts it at the TOP)
         currentView.history.unshift({
             timestamp: new Date().toLocaleTimeString(),
             rowNumber: currentRowIndex + 1,
@@ -115,21 +99,16 @@ function editLiveValue(idx) {
             newValue: String(newVal)
         });
 
-        // 3. Update the Actual Data Row
         currentView.data[currentRowIndex][colKey] = newVal;
-        
-        // 4. HARD SAVE: Write to LocalStorage immediately
         triggerSave(); 
-        
-        // 5. Refresh the Presentation UI
         closePop(); 
         renderSlideContent();
     }
 }
 
-// --- 4. HISTORY VIEW (Syncs on Load) ---
+// --- 4. HISTORY VIEW ---
 function renderHistoryView() {
-    refreshGlobalData(); // Grab latest data from storage
+    refreshGlobalData();
     currentView = views.find(v => v.createdAt == currentView.createdAt);
 
     const history = currentView.history || [];
@@ -156,20 +135,18 @@ function renderHistoryView() {
         </div>`;
 }
 
-// --- 5. EXPORT PACK (Uses Synced Data) ---
+// --- 5. EXPORT PACK ---
 function exportFinalFiles() {
-    refreshGlobalData(); // Ensure we export what is on disk
+    refreshGlobalData();
     currentView = views.find(v => v.createdAt == currentView.createdAt);
 
     if (!currentView.data || !currentView.data.length) return alert("No data to export.");
     
-    // Generate Excel from the MODIFIED data
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(currentView.data);
     XLSX.utils.book_append_sheet(wb, ws, "Master_Data");
     XLSX.writeFile(wb, `${currentView.name}_Updated.xlsx`);
 
-    // Generate History Log
     const log = (currentView.history || []).map(h => `[${h.timestamp}] Row ${h.rowNumber} | ${h.column}: ${h.oldValue} -> ${h.newValue}`).join('\n');
     if (log) {
         const blob = new Blob([`HISTORY LOG FOR: ${currentView.name}\n\n` + log], { type: 'text/plain' });
@@ -206,6 +183,7 @@ function renderSidebarContent() {
 
 function renderGlobalControls() {
     const btnText = (currentView.data && currentView.data.length > 0) ? 'Change Excel Data' : 'Upload Excel Sheet';
+    // Updated Grid with requested sizes
     return `
         <div class="property-group"><h4>View Name</h4><input type="text" value="${currentView.name}" oninput="currentView.name=this.value; triggerSave();"></div>
         <div class="property-group">
@@ -214,7 +192,13 @@ function renderGlobalControls() {
                 <button class="size-btn" onclick="addNewBoxDirectly(1,1)">+ 1x1 Box</button>
                 <button class="size-btn" onclick="addNewBoxDirectly(2,1)">+ 2x1 Box</button>
                 <button class="size-btn" onclick="addNewBoxDirectly(3,1)">+ 3x1 Box</button>
+                <button class="size-btn" onclick="addNewBoxDirectly(4,1)">+ 4x1 Box</button>
+                <button class="size-btn" onclick="addNewBoxDirectly(6,1)">+ 6x1 Box</button>
                 <button class="size-btn" onclick="addNewBoxDirectly(2,2)">+ 2x2 Box</button>
+                <button class="size-btn" onclick="addNewBoxDirectly(3,2)">+ 3x2 Box</button>
+                <button class="size-btn" onclick="addNewBoxDirectly(4,2)">+ 4x2 Box</button>
+                <button class="size-btn" onclick="addNewBoxDirectly(3,3)">+ 3x3 Box</button>
+                <button class="size-btn" onclick="addNewBoxDirectly(4,4)">+ 4x4 Box</button>
             </div>
         </div>
         <div class="property-group"><h4>Canvas Theme</h4><div class="color-grid">${bgPresets.map(c => `<div class="circle" style="background:${c}" onclick="updateCanvasBg('${c}')"></div>`).join('')}</div></div>
@@ -224,6 +208,7 @@ function renderGlobalControls() {
 function renderBoxControls() {
     const box = currentView.boxes[selectedBoxIdx];
     const hasData = currentView.headers && currentView.headers.length > 0;
+    // Added Font Size Controls
     return `
         <div class="property-group"><h4>Label</h4><input type="text" value="${box.title}" oninput="syncBoxAttr(${selectedBoxIdx}, 'title', this.value, false)"></div>
         <div class="property-group">
@@ -232,6 +217,17 @@ function renderBoxControls() {
                 <option value="const" ${!box.isVar ? 'selected' : ''}>Static Text</option>
                 <option value="var" ${box.isVar ? 'selected' : ''}>Excel Variable</option>
             </select>
+        </div>
+        <div class="property-group">
+            <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                <h4>Font Size</h4>
+                <span style="font-weight:bold; color:var(--slate);">${box.fontSize || 32}px</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <button class="blue-btn" style="padding:5px 15px;" onclick="updateFontSize(${selectedBoxIdx}, -2)">-</button>
+                <input type="range" min="12" max="150" value="${box.fontSize || 32}" oninput="syncBoxAttr(${selectedBoxIdx}, 'fontSize', parseInt(this.value), true)" style="flex:1">
+                <button class="blue-btn" style="padding:5px 15px;" onclick="updateFontSize(${selectedBoxIdx}, 2)">+</button>
+            </div>
         </div>
         <div class="property-group">
             <h4>Content</h4>
@@ -271,7 +267,8 @@ function renderSlideContent() {
         const div = document.createElement('div'); div.className = 'box-instance';
         div.style.cssText = `left:${(box.x/6)*100}%; top:${(box.y/4)*100}%; --w-pct:${(box.w/6)*100}%; --h-pct:${(box.h/4)*100}%; background:${box.bgColor}; color:${box.textColor}; cursor:pointer;`;
         const val = box.isVar ? (row[box.textVal] || '---') : box.textVal;
-        div.innerHTML = `<div class="box-title" style="color:${box.textColor};">${box.title}</div><div class="box-content" style="font-size:${box.fontSize}px;">${val}</div>`;
+        // Applied font size here
+        div.innerHTML = `<div class="box-title" style="color:${box.textColor};">${box.title}</div><div class="box-content" style="font-size:${box.fontSize || 32}px;">${val}</div>`;
         div.onclick = (e) => { e.stopPropagation(); openLargePopup(i, val); };
         canvas.appendChild(div);
     });
@@ -300,7 +297,8 @@ function drawBoxes() {
         const div = document.createElement('div');
         div.className = `box-instance ${selectedBoxIdx === i ? 'selected-box' : ''}`;
         div.style.cssText = `left:${(box.x/6)*100}%; top:${(box.y/4)*100}%; --w-pct:${(box.w/6)*100}%; --h-pct:${(box.h/4)*100}%; background:${box.bgColor}; color:${box.textColor};`;
-        div.innerHTML = `<div class="box-title">${box.title}</div><div class="box-content">${box.isVar ? "VARIABLE" : box.textVal}</div>`;
+        // UPDATED: Now showing font size in edit canvas
+        div.innerHTML = `<div class="box-title">${box.title}</div><div class="box-content" style="font-size:${box.fontSize || 32}px;">${box.isVar ? "VARIABLE" : box.textVal}</div>`;
         div.onmousedown = (e) => { startDragExisting(e, i); };
         layer.appendChild(div);
     });
@@ -347,8 +345,15 @@ function uploadExcel() {
 }
 
 function addNewBoxDirectly(w, h) {
-    currentView.boxes.push({ x: 0, y: 0, w: parseInt(w), h: parseInt(h), title: 'Label', textVal: 'Value', isVar: false, bgColor: '#ffffff', textColor: '#000000', fontSize: 24 });
+    currentView.boxes.push({ x: 0, y: 0, w: parseInt(w), h: parseInt(h), title: 'Label', textVal: 'Value', isVar: false, bgColor: '#ffffff', textColor: '#000000', fontSize: 32 });
     triggerSave(); drawBoxes();
+}
+
+function updateFontSize(idx, delta) {
+    let s = (currentView.boxes[idx].fontSize || 32) + delta;
+    if(s < 12) s = 12; if(s > 150) s = 150;
+    currentView.boxes[idx].fontSize = s;
+    triggerSave(); refreshSidebar(); drawBoxes();
 }
 
 function syncBoxAttr(idx, key, val, reload) { currentView.boxes[idx][key] = val; triggerSave(); drawBoxes(); if(reload) refreshSidebar(); }
