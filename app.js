@@ -221,11 +221,11 @@ function renderBoxControls() {
         <div class="property-group">
             <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
                 <h4>Font Size</h4>
+                <span style="font-weight:bold; color:var(--slate);">${box.fontSize || 32}px</span>
             </div>
             <div style="display:flex; align-items:center; gap:10px;">
-                <button class="blue-btn" style="padding:5px 15px;" onclick="updateFontSize(${selectedBoxIdx}, -2)">-</button>
-                <span style="font-weight:bold; color:var(--slate);">${box.fontSize || 32}px</span>
-                <button class="blue-btn" style="padding:5px 15px;" onclick="updateFontSize(${selectedBoxIdx}, 2)">+</button>
+                <button class="blue-btn" style="padding:5px 30px;" onclick="updateFontSize(${selectedBoxIdx}, -2)">-</button>
+                <button class="blue-btn" style="padding:5px 30px;" onclick="updateFontSize(${selectedBoxIdx}, 2)">+</button>
             </div>
         </div>
         <div class="property-group">
