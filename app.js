@@ -59,13 +59,13 @@ function openMenu(id) {
             <button class="blue-btn" style="background:var(--slate); margin-bottom:20px; align-self:flex-start;" onclick="renderHome()">← Back</button>
             <h1 class="main-heading" style="margin-top:0;">${currentView.name}</h1>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
-                <button class="blue-btn" style="height:140px; font-size:1.2rem;" onclick="renderEditCanvas()">Edit Layout</button>
-                <button class="blue-btn" style="height:140px; font-size:1.2rem;" onclick="openPresentationTab('${id}')">Present Mode</button>
-                <button class="orange-btn" style="height:140px; font-size:1.2rem;" onclick="exportFinalFiles()">Export Pack</button>
-                <button class="danger-btn" style="height:140px; font-size:1.2rem;" onclick="deleteView('${id}')">Delete View</button>
-            </div>
-            <div style="margin-top: 20px; color: var(--slate); font-size: 0.9rem;">
-                Rows: ${currentView.data ? currentView.data.length : 0} | Edits: ${currentView.history ? currentView.history.length : 0}
+                <button class="blue-btn" style="height:120px; font-size:1.1rem;" onclick="renderEditCanvas()">Edit Layout</button>
+                <button class="blue-btn" style="height:120px; font-size:1.1rem;" onclick="openPresentationTab('${id}')">Present Mode</button>
+                
+                <button class="orange-btn" style="height:120px; font-size:1.1rem; background:var(--slate);" onclick="renderHistoryView()">View History Log</button>
+                
+                <button class="orange-btn" style="height:120px; font-size:1.1rem;" onclick="exportFinalFiles()">Export Pack</button>
+                <button class="danger-btn" style="height:120px; font-size:1.1rem; grid-column: span 2;" onclick="deleteView('${id}')">Delete View</button>
             </div>
         </div>`;
 }
@@ -256,13 +256,34 @@ function openLargePopup(idx, val) {
 function editLiveValue(idx) {
     const box = currentView.boxes[idx];
     const colKey = box.textVal;
-    const oldVal = currentView.data[currentRowIndex][colKey] || '---';
+    
+    // 1. Identify the current row data
+    const rowData = currentView.data[currentRowIndex] || {};
+    const oldVal = rowData[colKey] !== undefined ? rowData[colKey] : '---';
+    
+    // 2. Prompt for new value
     const newVal = prompt(`Edit ${colKey} (Row ${currentRowIndex + 1}):`, oldVal);
+    
+    // 3. Only update if the value actually changed
     if (newVal !== null && newVal !== oldVal) {
         if (!currentView.history) currentView.history = [];
-        currentView.history.push({ time: new Date().toLocaleTimeString(), row: currentRowIndex + 1, col: colKey, old: oldVal, new: newVal });
+
+        // Push detailed history object
+        currentView.history.push({
+            timestamp: new Date().toLocaleString(), // Full date & time
+            rowNumber: currentRowIndex + 1,        // Human-readable row index
+            column: colKey,
+            oldValue: oldVal,
+            newValue: newVal
+        });
+
+        // Update the data in the view
         currentView.data[currentRowIndex][colKey] = newVal;
-        triggerSave(); closePop(); renderSlideContent();
+        
+        triggerSave(); 
+        closePop(); 
+        renderSlideContent();
+        console.log(`Updated Row ${currentRowIndex + 1}: ${oldVal} -> ${newVal}`);
     }
 }
 
@@ -275,12 +296,15 @@ function exportFinalFiles() {
         XLSX.utils.book_append_sheet(wb, ws, "Data");
         XLSX.writeFile(wb, `${currentView.name.replace(/\s+/g, '_')}_Updated.xlsx`);
         
-        const log = (currentView.history || []).map(h => `[${h.time}] Row ${h.row} | ${h.col}: ${h.old} -> ${h.new}`).join('\n');
+        const log = (currentView.history || []).map(h => 
+            `[${h.timestamp}] ROW: ${h.rowNumber} | FIELD: ${h.column} | WAS: "${h.oldValue}" -> IS: "${h.newValue}"`
+        ).join('\n');
+
         if (log) {
-            const blob = new Blob([log], { type: 'text/plain' });
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${currentView.name}_history.txt`; 
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        }
+            const header = `--- EDIT HISTORY FOR ${currentView.name} ---\n\n`;
+            const blob = new Blob([header + log], { type: 'text/plain' });
+    
+}
     } catch (e) { alert("Export failed."); }
 }
 
@@ -304,6 +328,56 @@ function addNewBoxDirectly(w, h) {
     const hasH = currentView.headers && currentView.headers.length > 0;
     currentView.boxes.push({ x: 0, y: 0, w: parseInt(w), h: parseInt(h), title: 'Label', textVal: hasH ? currentView.headers[0] : 'Value', isVar: hasH, bgColor: '#e2e8f0', textColor: '#000', fontSize: 24 });
     triggerSave(); drawBoxes();
+}
+
+function renderHistoryView() {
+    const app = document.getElementById('app');
+    const history = currentView.history || [];
+
+    let historyRows = history.length > 0 
+        ? history.map(h => `
+            <tr>
+                <td style="padding:12px; border-bottom:1px solid var(--light-grey); font-size:0.8rem;">${h.timestamp}</td>
+                <td style="padding:12px; border-bottom:1px solid var(--light-grey); font-weight:700;">Row ${h.rowNumber}</td>
+                <td style="padding:12px; border-bottom:1px solid var(--light-grey); color:var(--slate);">${h.column}</td>
+                <td style="padding:12px; border-bottom:1px solid var(--light-grey); color:var(--danger-grad);">${h.oldValue}</td>
+                <td style="padding:12px; border-bottom:1px solid var(--light-grey); color:#10b981; font-weight:700;">${h.newValue}</td>
+            </tr>`).join('')
+        : `<tr><td colspan="5" style="padding:40px; text-align:center; color:var(--slate);">No edits recorded yet.</td></tr>`;
+
+    app.innerHTML = `
+        <div class="home-container" style="width: 90%; max-width: 1000px;">
+            <button class="blue-btn" style="background:var(--slate); margin-bottom:20px; align-self:flex-start;" onclick="openMenu('${currentView.createdAt}')">← Back to Menu</button>
+            <h1 class="main-heading" style="text-align:left; margin-bottom:20px;">Edit History</h1>
+            
+            <div style="background:white; border-radius:24px; padding:20px; box-shadow:0 10px 30px rgba(0,0,0,0.05); overflow-x:auto;">
+                <table style="width:100%; border-collapse:collapse; text-align:left;">
+                    <thead>
+                        <tr style="text-transform:uppercase; font-size:0.7rem; letter-spacing:1px; color:var(--slate);">
+                            <th style="padding:12px;">Time</th>
+                            <th style="padding:12px;">Location</th>
+                            <th style="padding:12px;">Field</th>
+                            <th style="padding:12px;">Original</th>
+                            <th style="padding:12px;">Updated</th>
+                        </tr>
+                    </thead>
+                    <tbody>${historyRows}</tbody>
+                </table>
+            </div>
+            
+            <div style="margin-top:30px; display:flex; gap:15px;">
+                <button class="orange-btn" onclick="exportFinalFiles()">Export All Files</button>
+                <button class="danger-btn" style="background:#fee2e2; color:#991b1b;" onclick="clearHistory()">Clear Logs</button>
+            </div>
+        </div>`;
+}
+
+function clearHistory() {
+    if(confirm("Are you sure you want to wipe the edit history? This cannot be undone.")) {
+        currentView.history = [];
+        triggerSave();
+        renderHistoryView();
+    }
 }
 
 function setBoxMode(idx, mode) { currentView.boxes[idx].isVar = mode; triggerSave(); refreshSidebar(); drawBoxes(); }
